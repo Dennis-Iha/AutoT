@@ -25,3 +25,5 @@ models/tts/piper/
 *.log
 .DS_Store
 *.db
+.dev_signing_key/
+.claude/

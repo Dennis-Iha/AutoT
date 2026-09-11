@@ -10,7 +10,12 @@
       "model_dir": "models/translation/argos/ar_en",
       "tokenizer_model": "models/translation/argos/ar_en/sentencepiece.model",
       "sha256": "b4a1df5f74720089425e983e4795d6e91f7de7df730c56c365240a3c4a79a43e",
-      "size_mb": 94.4
+      "size_mb": 94.4,
+      "signature": {
+        "signature_b64": "8Wc3T08j8o1jett5lapPvRcDzRGXRnYVdiT8kyvFolWm4rlNrUkdvCXX7bzAlFL6QE9XoFUodev2wZiP+lH1Bw==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-bn-en-1.9",
@@ -21,7 +26,12 @@
       "model_dir": "models/translation/argos/bn_en",
       "tokenizer_model": "models/translation/argos/bn_en/sentencepiece.model",
       "sha256": "f3d3323089979cfc88163ab633877a2de6408f2493aa803ae1423432e7bade6a",
-      "size_mb": 81.1
+      "size_mb": 81.1,
+      "signature": {
+        "signature_b64": "diN9MnevjH3PeRW36dAg9T1vNsBPut2DOYrWRAHO9/HXhTrKXeyEn6T6ccvy9x81o6Lk3SxBhdIgpSyATRzJAg==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-zh-en-1.9",
@@ -32,7 +42,12 @@
       "model_dir": "models/translation/argos/zh_en",
       "tokenizer_model": "models/translation/argos/zh_en/sentencepiece.model",
       "sha256": "edd8c8a6863d36959613ff291074627a1635fab2f51b872ef437e924d238921a",
-      "size_mb": 82.7
+      "size_mb": 82.7,
+      "signature": {
+        "signature_b64": "FT3+KSgD34N+shLfPJgkZuGvAC04an7GY6ht9vITJMCFkCLsTCOT+u9QQgzbORlgdb7mxXfTSeT5xw1CC9fECA==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-fr-en-1.9",
@@ -43,7 +58,12 @@
       "model_dir": "models/translation/argos/fr_en",
       "tokenizer_model": "models/translation/argos/fr_en/sentencepiece.model",
       "sha256": "12f4dd41956b8975067b710675ce0668073b4d682892a9b1c496287cecbd0802",
-      "size_mb": 79.9
+      "size_mb": 79.9,
+      "signature": {
+        "signature_b64": "FoGc6MWoHhQYmWsvTwt+NxZHuKfAQDOP8Pt5jSbFhpCUwOKwJRH1j6SWubEVP+vDCyviFGwsFRtnwQxPeASaAw==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-hi-en-1.1",
@@ -54,7 +74,12 @@
       "model_dir": "models/translation/argos/hi_en",
       "tokenizer_model": "models/translation/argos/hi_en/sentencepiece.model",
       "sha256": "fa0d5c303538d95a54c2a66ffb372abe184d76417f2df5c32bbf531be3bed7eb",
-      "size_mb": 115.8
+      "size_mb": 115.8,
+      "signature": {
+        "signature_b64": "crAmD6ySb8mg5ibfBP5lokIiz1iKsmTNPtamnhtqals4ioWmpt0v6pTlEylaetf+YjHg4+t/oNaojhIDOWcUCg==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-pt-en-1.9",
@@ -65,7 +90,12 @@
       "model_dir": "models/translation/argos/pt_en",
       "tokenizer_model": "models/translation/argos/pt_en/sentencepiece.model",
       "sha256": "d0baa028926f7eceb6e8bcc8d75bd9ed4184665ff1702b93d580e3e2046ddc18",
-      "size_mb": 80.1
+      "size_mb": 80.1,
+      "signature": {
+        "signature_b64": "9qrpt+Azy+8NGx+3Bwx2b4UMxyghmnXA3XWACiu+eW117gVQ4jqNRC3YWNhiYSdyTKVXH7oO63KBUiDW2LJcDQ==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-ru-en-1.9",
@@ -76,7 +106,12 @@
       "model_dir": "models/translation/argos/ru_en",
       "tokenizer_model": "models/translation/argos/ru_en/sentencepiece.model",
       "sha256": "026d5f34266b4235c13fc29c665f151b88d0c1b02b0be7f87734fe9c511e20bc",
-      "size_mb": 170.5
+      "size_mb": 170.5,
+      "signature": {
+        "signature_b64": "syhn0Ko+fDP64HyLCLUWGVO0l6ewMYRg08AaBmJjaTZ3D4HJlPs6Y88z7vIRMjYb2gTyq8Y/nbSMpZmaJxP+Dg==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-es-en-1.9",
@@ -87,7 +122,12 @@
       "model_dir": "models/translation/argos/es_en",
       "tokenizer_model": "models/translation/argos/es_en/bpe.model",
       "sha256": "3c634f2fbfce11ba9c3db839db50079c08d3cdb12c74f2c21671f742dbbb30f1",
-      "size_mb": 314.1
+      "size_mb": 314.1,
+      "signature": {
+        "signature_b64": "uqmeJGHcaKA723QL23efKUjmqARWvfRxpmRm5ORd8QRizyhYqG3vHJ/3SB1pq4fI4cc+VHwlMykmmoa2tGYrDA==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-ar-1.0",
@@ -98,7 +138,12 @@
       "model_dir": "models/translation/argos/en_ar",
       "tokenizer_model": "models/translation/argos/en_ar/sentencepiece.model",
       "sha256": "c479480b93dfb0b197a5ea9708f3cfcf45bc0b7eef2465deb555d93c94da3909",
-      "size_mb": 94.4
+      "size_mb": 94.4,
+      "signature": {
+        "signature_b64": "upI2o+52oHIwMGekV6yXrtGTKJAQu1wdwwP6/nhyjCB8BrXCONsutBZrY9V8dlz8n+ga2JsvB6x9lwNvMSxeBQ==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-bn-1.9",
@@ -109,7 +154,12 @@
       "model_dir": "models/translation/argos/en_bn",
       "tokenizer_model": "models/translation/argos/en_bn/sentencepiece.model",
       "sha256": "2a4c5869ca4ac4b7c8c4ad97ccf0b79d1f768ebb028d5be8757b554c87cbaad0",
-      "size_mb": 80.4
+      "size_mb": 80.4,
+      "signature": {
+        "signature_b64": "Qtg8pbDfY9dMa6G9zlHC7T3PSCPI23oETc2txkCsi5IIglALra3PHZwMIlo6c88UFETqmKmCOA9Zogm+oIH+Ag==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-zh-1.9",
@@ -120,7 +170,12 @@
       "model_dir": "models/translation/argos/en_zh",
       "tokenizer_model": "models/translation/argos/en_zh/sentencepiece.model",
       "sha256": "1a039114d9456b6528fabb65b455b6f156319634a0f984b1f6018f7737d67598",
-      "size_mb": 82.7
+      "size_mb": 82.7,
+      "signature": {
+        "signature_b64": "wpo749eO7GWZen2C/MKHVREfWicLdpFHdwbX2vfiJfT3ujd3P/A5/FriqgVebpbHlcGJvjpObDwN/Zy7SxOUCA==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-fr-1.9",
@@ -131,7 +186,12 @@
       "model_dir": "models/translation/argos/en_fr",
       "tokenizer_model": "models/translation/argos/en_fr/sentencepiece.model",
       "sha256": "870d2b37c7059c3e5df9cf3aeb8af4afe1840f208af776567f9f98ebb605c1c3",
-      "size_mb": 79.9
+      "size_mb": 79.9,
+      "signature": {
+        "signature_b64": "si+kR8/UM5GuSc4/5169H4+YeM2AXoJigx+k8SJFhFBPRfljRV6WviGB03dF3ZXQKuAmZT4pbM55KKI0w/o8AA==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-hi-1.1",
@@ -142,7 +202,12 @@
       "model_dir": "models/translation/argos/en_hi",
       "tokenizer_model": "models/translation/argos/en_hi/sentencepiece.model",
       "sha256": "fd9ec7353eb989f66e3757a39bdb5fabfa1a4d027430bd820b5f12a18710b4ba",
-      "size_mb": 115.6
+      "size_mb": 115.6,
+      "signature": {
+        "signature_b64": "ZqiqTUAaTLzJkg99PqbnDEN5glJi4tMIlYmOwcyqadxpj2nmexEtpmS9WjBwAbwcUx0cA91TgqZOq+4lDMzJAg==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-pt-1.9",
@@ -153,7 +218,12 @@
       "model_dir": "models/translation/argos/en_pt",
       "tokenizer_model": "models/translation/argos/en_pt/sentencepiece.model",
       "sha256": "a68dd89c9d226e09cef948a01ded22bede8858326af89644f1b715efe39e7018",
-      "size_mb": 80.3
+      "size_mb": 80.3,
+      "signature": {
+        "signature_b64": "wKGYJsRyUna3LI5sO9rURLVgjV9KRHrzGdAQxmSz36ahqU1zeUWT9BL7nIFfQd0VvYgcNsCqrjnkHst9wg+yBQ==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-ru-1.9",
@@ -164,7 +234,12 @@
       "model_dir": "models/translation/argos/en_ru",
       "tokenizer_model": "models/translation/argos/en_ru/sentencepiece.model",
       "sha256": "c262cce6a506447d4b3c7a899787694df13783340ba67f0df3ecbf046ae27924",
-      "size_mb": 214.3
+      "size_mb": 214.3,
+      "signature": {
+        "signature_b64": "JeGrAsXenPXOuTzK24rE97y9Obs4DtlXjdju4DjFEGPFdTEAXTlUaCa9Ki40msF4TpWchHgfxvrWmWv5RXDmCA==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     },
     {
       "model_id": "argos-en-es-1.0",
@@ -175,7 +250,12 @@
       "model_dir": "models/translation/argos/en_es",
       "tokenizer_model": "models/translation/argos/en_es/sentencepiece.model",
       "sha256": "d5771f823c9dd7eedcf9367c116aede65613a194f761a81826351e2bccb194c4",
-      "size_mb": 94.4
+      "size_mb": 94.4,
+      "signature": {
+        "signature_b64": "k+ie2DC2bt8nvbbMXVJvOpTY1K2CehYFM0U4fWajL5MV5wwwbsR1L+i8/R1KBNcrUszH3IhAVvJfWWUpZNwBDA==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     }
   ]
 }

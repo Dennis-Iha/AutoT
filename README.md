@@ -48,6 +48,17 @@ dominated by ASR/LID compute, not fixable by streaming architecture alone -
 read those before assuming either works end-to-end for every language or is
 fast today.
 
+**Phase 20: model package signing, real and tested.** `core/security/`
+extends Phase 10's checksums with Ed25519 signatures
+(`core/security/package_signing.py`), so a model's integrity *and*
+authenticity can both be verified before it's loaded, not just its
+integrity. `tools/sign_model_manifests.py` /
+`tools/verify_model_manifests.py` run this for real against all 20 entries
+across the ASR/translation/TTS manifests (dev keypair only — no production
+AT signing key exists). Secure boot / signed firmware verification is still
+a design document (`firmware/architecture.md`) — it needs physical hardware
+this environment doesn't have.
+
 ## Initial language set
 
 English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali,

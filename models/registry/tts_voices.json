@@ -9,7 +9,12 @@
       "sample_rate_hz": 22050,
       "model_dir": "models/tts/piper/en_US-amy-medium",
       "sha256": "b3a6e47b57b8c7fbe6a0ce2518161a50f59a9cdd8a50835c02cb02bdd6206c18",
-      "size_mb": 63.2
+      "size_mb": 63.2,
+      "signature": {
+        "signature_b64": "owUqWCnckHa2LUOqDLK3j4fFyw6nLXlJyTSMv0G4rt4OA0G7gFn/uqxvTCJDXlDwJuudK6DoSsrdhCqRUbT7DQ==",
+        "key_id": "dev-key-1",
+        "algorithm": "ed25519"
+      }
     }
   ]
 }

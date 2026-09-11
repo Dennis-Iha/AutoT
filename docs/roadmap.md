@@ -489,15 +489,51 @@ character password. Fixed by calling `bcrypt` directly instead of routing
 through passlib's broken version-sniffing shim. 20 backend tests, all
 passing, ruff and mypy clean (backend/ added to the mypy gate).
 
-## Immediate next step (Phase 20+)
+## Phase 20 results summary: security (model package signing)
 
-Phase 20 (security) and Phase 21 (privacy) both have real software-only
-components buildable without physical hardware: model package signing
-(extending Phase 10's checksums with actual cryptographic signatures) and
-verifiable no-audio-persistence behavior (already true by construction in
-`core/orchestration/pipeline.py` - worth an explicit test proving it, not
-just an assumption). Phases 22-30 (battery, thermal, PCB, miniaturization,
-manufacturing, factory test, performance testing) need physical hardware
-this environment doesn't have - continue the same honest pattern:
-real, tested work where the environment allows it, clearly-labeled design
-documents where it doesn't, never simulated as tested.
+`core/security/package_signing.py` adds Ed25519 signing/verification on top
+of Phase 10's SHA256 checksums. The distinction matters and is documented in
+the module docstring: a checksum alone proves a file wasn't corrupted or
+truncated in transit, but does nothing to stop a malicious actor from
+distributing a *different* model with its own correct checksum recorded
+alongside it - only a signature, verified against a trusted public key,
+proves the file was actually published by whoever holds AT's private
+signing key. Signs the SHA256 digest already computed by
+`core.common.model_manifest`, not the raw file bytes, so re-signing after a
+manifest update doesn't mean re-reading hundreds of MB of model files.
+
+7 unit tests cover the roundtrip, tampered-digest rejection,
+wrong-public-key rejection, corrupted-signature-byte rejection, key-id
+rotation support, and rejection of a non-Ed25519 key (RSA) with a `TypeError`
+(ruff TRY004 - a type-check failure, not a value error). Then run for real,
+not just against synthetic test bytes: `tools/sign_model_manifests.py`
+generates a development-only Ed25519 keypair (`.dev_signing_key/`,
+gitignored - explicitly not a production key, since no production AT
+deployment exists; a real deployment's private key must live in an HSM, never
+in this repo), and signs every one of the 20 real entries across the
+ASR/translation/TTS manifests. `tools/verify_model_manifests.py` then
+re-verifies all 20 signatures against the dev public key AND re-verifies the
+underlying checksum, confirming end-to-end: `[OK] whisper-tiny`,
+`[OK] argos-es-en-1.9`, `[OK] en_US-amy-medium`, etc. - all 20 pass.
+
+Secure boot and signed firmware verification (verifying a signature against
+a boot ROM / secure element before a device runs untrusted code) is
+explicitly NOT built - it needs physical hardware this environment doesn't
+have. `firmware/architecture.md` remains a design document for that piece.
+
+## Immediate next step (Phase 21+)
+
+Phase 21 (privacy) has a real software-only component: verifiable
+no-audio-persistence behavior. `core/orchestration/pipeline.py` never writes
+raw audio to disk by construction (it operates on in-memory numpy arrays and
+only ever writes to disk when the CLI's `--output` flag is explicitly given
+an output WAV path) - this is currently true but only *asserted*, not
+*tested*. Phase 21 should add an explicit automated test that proves it
+(e.g. monitor the filesystem / mock `open`/`soundfile.write` during a full
+pipeline run and assert no audio bytes are written unless the caller opted
+in), plus a data flow / retention / telemetry policy document. Phases 22-30
+(battery, thermal, PCB, miniaturization, manufacturing, factory test,
+performance testing) need physical hardware this environment doesn't have -
+continue the same honest pattern: real, tested work where the environment
+allows it, clearly-labeled design documents where it doesn't, never
+simulated as tested.

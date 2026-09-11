@@ -20,6 +20,7 @@ dependencies = [
     "subword-nmt>=0.3.8",
     "sacremoses>=0.0.53",
     "piper-tts>=1.8.0",
+    "cryptography>=42.0",
 ]
 
 [project.optional-dependencies]

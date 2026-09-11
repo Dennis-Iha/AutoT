@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-19; Phase 12-15/18 are desk research/design docs, no physical hardware)
+## Current implementation status (as of Phase 0-20; Phase 12-15/18 are desk research/design docs, no physical hardware)
 
 | Component | Status | Where |
 |---|---|---|
@@ -109,6 +109,8 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Conversation Mode (two-direction translation) | done, tested with fakes (9 tests) and real models (3 live tests, real Spanish<->English exchange); speaker identification is explicit caller input, NOT automatic diarization (unimplemented, honestly scoped) | `core/orchestration/conversation.py` |
 | Mobile app architecture | design document only - no mobile SDK, device, or emulator in this environment | `apps/mobile-app-architecture.md` |
 | Backend (auth, devices, models, firmware/OTA) | done, tested (20 tests); FastAPI + SQLAlchemy + SQLite (no Docker/Postgres server in this environment); `GET /models` reuses Phases 6/7/10's real registries, not a second mock list | `backend/` |
+| Model package signing (Ed25519, extends Phase 10 checksums) | done, tested (7 unit tests + real end-to-end run against all 20 installed model manifest entries, all verify); signs the SHA256 digest, not raw file bytes; dev keypair only (`.dev_signing_key/`, gitignored) - no HSM, no production AT signing key exists | `core/security/package_signing.py`, `tools/sign_model_manifests.py`, `tools/verify_model_manifests.py` |
+| Secure boot / signed firmware verification on-device | not started - needs physical hardware with a boot ROM/secure element; see `firmware/architecture.md` | `firmware/` (design doc) |
 | Custom PCB, miniaturization, charging case, manufacturing, factory test, battery/thermal engineering | not started - all require physical hardware and lab equipment this environment doesn't have (Phase 22-30) | `hardware/` (skeleton) |
 
 ## Language coverage is a claim, not an assumption
