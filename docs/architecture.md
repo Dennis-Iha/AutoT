@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-8)
+## Current implementation status (as of Phase 0-9)
 
 | Component | Status | Where |
 |---|---|---|
@@ -98,7 +98,8 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Audio playback | done, unit-tested (mocked, doesn't play audio on every test run) + verified manually on real hardware | `core/audio/playback.py` |
 | Full pipeline wiring (LID->ASR->translation->TTS, confidence fallback) | done, tested with fakes (11 orchestration-logic tests) and real models (4 live tests using es/en, the languages LID reliably detects, plus the low-confidence fallback path using ar) | `core/orchestration/pipeline.py` |
 | `at-translate` CLI (mic or file input, live playback or WAV output) | done, smoke-tested in both file mode (real translated output produced) and live mic mode (starts/stops cleanly, zero false-positive segments on silence) | `tools/at_translate.py` |
-| Streaming orchestration / full CLI pipeline | not started (Phase 8/9) | `core/streaming/`, `core/orchestration/` (empty) |
+| Streaming session (decouples slow pipeline processing from the real-time audio thread) | done, tested; fixes a real bug found in Phase 8 (mic blocked for 17-90s per segment inside the PortAudio callback) - see docs/roadmap.md's Phase 9 section | `core/streaming/session.py` |
+| Latency benchmark (capture/VAD/LID/ASR/translation/TTS/playback/total) | done; measured ~38-44s total per utterance on this CPU (base model), dominated by LID+ASR encoder passes - not a threading/streaming-fixable cost, see Phase 11/12 | `tools/latency_benchmark.py` |
 | Everything hardware/firmware/backend/mobile | not started (Phase 12+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
 
 ## Language coverage is a claim, not an assumption

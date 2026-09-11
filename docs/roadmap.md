@@ -16,7 +16,7 @@ to work.
 | 6 | Translation engine | **done** |
 | 7 | Text-to-speech | **done** |
 | 8 | Complete software pipeline (`at-translate` CLI) | **done** |
-| 9 | Real-time streaming + latency benchmarking | not started |
+| 9 | Real-time streaming + latency benchmarking | **done** |
 | 10 | Offline mode / model manifest / checksum verification | not started |
 | 11 | Model optimization (quantization/distillation/pruning benchmarks) | not started |
 | 12 | Embedded development platform selection | not started |
@@ -212,16 +212,95 @@ with Phase 5's finding that the base model is far from real-time on this
 CPU; Phase 11 (quantization) and Phase 12 (embedded/NPU hardware) remain
 the path to fixing that, not this phase.
 
-## Immediate next step (Phase 9)
+## Phase 9 results summary: real-time streaming + latency benchmarking
 
-Real-time streaming: process audio in chunks as it arrives rather than
-waiting for a complete VAD segment before starting ASR, and pipe partial
-ASR hypotheses into incremental translation/TTS. Given Phase 8's measured
-~41s total latency for one short utterance (dominated by ASR), prioritize
-investigating why language_id + asr together cost ~30s before assuming
-streaming alone fixes user-perceived latency - profile whether a smaller
-model or reused warm state closes more of the gap than chunking does.
-Also revisit whether Phase 3's denoise/beamforming should sit in this live
-chain (currently bypassed) now that there's an end-to-end pipeline to
-measure its real effect on, rather than only the synthetic benchmarks from
-Phase 3.
+Did the profiling Phase 8 called for before writing any streaming code
+(originally attempted via a forked subagent; the fork hit a session rate
+limit and failed, so this was done directly instead - noted for
+transparency, not hidden). Findings, measured not assumed:
+
+**Where the ~13-17s LID/ASR latency actually goes**: `whisper_print_timings`
+shows model *load* time is 260-450ms regardless of model size - negligible.
+The *encoder* forward pass is the dominant cost: ~4.5-6.5s (tiny) / ~13.8-
+14s (base) per full-buffer pass, for a 2.3s clip. This rules out "keep a
+warm/resident model" (e.g. `whisper-server` instead of a fresh `whisper-cli`
+subprocess per call) as a meaningful fix - it would only save the ~300-450ms
+load time, not the multi-second compute.
+
+**A deeper, real inefficiency found while checking this**: whisper.cpp's own
+`-l auto` mode pays for TWO full encoder passes internally in a single CLI
+call (measured: `encode time = 28681ms / 2 runs` for one `-l auto -oj` call)
+- one inside `whisper_lang_auto_detect_with_state()`, a second, separate one
+for the actual transcription decode; the library does not reuse the first
+pass's encoder output for the second. This means `core/asr/whisper_cpp_asr.py`
+using a *forced* language (skipping the "auto" path entirely) after
+`core/language_id/whisper_lid.py`'s dedicated `-dl` call already pays close
+to the practical minimum (2 encode passes total: one for LID, one for
+transcription) - merging them into a single `-l auto` call would NOT reduce
+total encoder cost (still 2 passes) and would remove the ability to skip
+decode+translate+TTS entirely when LID confidence is too low to bother
+(exercised often in practice, per Phase 8's LID accuracy findings) - so the
+two-call architecture was kept as-is, not "optimized" into something worse.
+
+**TTS is not the bottleneck**: `PiperTTSEngine._get_voice()` already caches
+the loaded model per voice ID; `tools/tts_benchmark.py`'s own numbers showed
+this (one-time load ~11s, warm calls 0.4-1.4s). Phase 8's reported "8.5s
+TTS" was a cold-load number in a fresh process, not representative of a
+long-running session.
+
+**A real concurrency bug found and fixed, not a hypothetical one**: Phase 8's
+`tools/at_translate.py` called `TranslationPipeline.process()` and blocking
+playback directly from `MicrophoneCapture`'s `on_frames` callback - which
+runs on PortAudio's real-time audio thread. Since a single segment can take
+17-90+ seconds to process, this blocked audio capture for that entire
+duration: the microphone effectively stopped listening while a previous
+utterance was being translated and spoken, directly contradicting the master
+spec's "the program must continuously listen, translate and speak." This
+was never caught by Phase 8's tests because the only live-mode smoke test
+used 3 seconds of silence, so no segment ever reached the blocking code
+path. Fixed with `core/streaming/session.py`'s `StreamingSession`: a
+producer/consumer queue where `submit()` (called from the audio callback) is
+an O(1) non-blocking push, and a single background worker thread drains the
+queue and runs the slow pipeline + playback. Verified with a
+threading.Event-gated fake pipeline (not sleep-based timing races) that
+`submit()` returns in under 100ms even while the worker is mid-`process()`,
+and with a real live-mode run where the capture thread started and stopped
+exactly on the requested 3s schedule while a segment was still draining in
+the background afterward.
+
+This does NOT reduce single-utterance latency (that's the encoder-pass cost
+above, unaffected by threading) - it only stops speech from being lost while
+a previous segment plays out, and surfaces backlog via `pending_count`.
+
+**`tools/latency_benchmark.py`** (the master spec's explicit Phase 9
+deliverable) measures every stage the spec lists - capture (mic-open to
+first-callback: ~176ms), VAD/segmentation (~3-20ms, confirmed negligible),
+language ID, ASR (forced-language, to isolate from the LID accuracy gap),
+translation, TTS, and playback (wall time including device-open overhead vs.
+raw audio duration) - end to end: ~38-44s total per utterance on this CPU
+with the base model, matching Phase 8's finding.
+
+**Conclusion for Phase 11/12**: nothing found here suggests a software-only
+fix closes the latency gap for single short utterances - Phase 3's
+denoise/beamforming (still not wired into the live chain) wouldn't touch
+encoder cost either. The real fix is a smaller/quantized model (Phase 11) or
+dedicated NPU/AI-accelerator hardware (Phase 12) that makes the encoder pass
+itself faster - streaming/chunking architecture's value is in keeping the
+system responsive and not losing speech during a long individual
+utterance's processing, which is genuinely worth having, not a latency
+silver bullet.
+
+## Immediate next step (Phase 10)
+
+Offline mode / model manifest / checksum verification: a model manifest
+listing every installed ASR/translation/TTS model with version + checksum,
+verified at startup so a corrupted or partially-downloaded model (a real
+failure mode already encountered twice in this project - the truncated
+Piper voice download in Phase 7, and the accidental duplicate-nested-
+directory nested Argos extraction in Phase 6) is caught explicitly rather
+than failing confusingly deep inside ctranslate2/onnxruntime/whisper.cpp.
+Also formalize model loading/unloading for RAM management (Phase 6's
+`CTranslate2TranslationEngine.unload()` and Phase 7's `PiperTTSEngine.unload()`
+already exist per-engine; Phase 10 should give the orchestration layer a
+policy for when to call them, relevant once multiple language pairs need to
+coexist within an embedded device's RAM budget).

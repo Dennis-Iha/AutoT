@@ -28,6 +28,7 @@ from core.common.config import REPO_ROOT, load_config
 from core.common.logging_setup import configure_logging
 from core.language_id.whisper_lid import WhisperLanguageIdentifier
 from core.orchestration.pipeline import PipelineStatus, TranslationPipeline
+from core.streaming.session import StreamingSession
 from core.translation.ctranslate2_translator import CTranslate2TranslationEngine
 from core.translation.model_registry import TranslationModelRegistry
 from core.tts.piper_tts import PiperTTSEngine
@@ -68,18 +69,15 @@ def build_pipeline(target_language: str, asr_model: str | None, threads: int) ->
     )
 
 
-def handle_segment(
-    pipeline: TranslationPipeline,
-    audio,
-    sample_rate_hz: int,
+def handle_result(
+    result,
     playback: AudioPlayback | None,
     out_dir: Path | None,
     segment_index: int,
 ) -> None:
-    start = time.perf_counter()
-    result = pipeline.process(audio, sample_rate_hz)
-    total_ms = (time.perf_counter() - start) * 1000.0
-
+    """Logs/saves/plays an already-computed PipelineResult. Deliberately
+    does NOT call pipeline.process() itself - see core/streaming/session.py
+    for why that must happen off the real-time audio thread in live mode."""
     if result.status == PipelineStatus.LOW_CONFIDENCE:
         assert result.detected_language is not None  # guaranteed by this status
         logger.info(
@@ -106,6 +104,7 @@ def handle_segment(
     assert result.transcription is not None
     assert result.synthesis is not None
 
+    total_ms = sum(result.stage_latencies_ms.values())
     logger.info(
         "segment %d [%s, conf=%.2f]: %r -> %r (total=%.0fms: %s)",
         segment_index, result.detected_language.language, result.detected_language.confidence,
@@ -125,6 +124,10 @@ def handle_segment(
 
 
 def run_file_mode(args, pipeline: TranslationPipeline) -> None:
+    """File mode processes sequentially in the main thread - there is no
+    real-time audio callback to protect here, unlike live mode (see
+    core/streaming/session.py), so a direct process()-then-handle() call is
+    fine."""
     audio, sample_rate_hz = read_wav(args.input_file)
     vad = WebRtcVAD(aggressiveness=2)
     segmenter = SpeechSegmenter(vad=vad, sample_rate_hz=sample_rate_hz)
@@ -132,21 +135,32 @@ def run_file_mode(args, pipeline: TranslationPipeline) -> None:
     frame_samples = segmenter.frame_samples
     playback = None if args.no_play else AudioPlayback()
     segment_index = 0
+
+    def process_and_handle(segment_audio) -> None:
+        nonlocal segment_index
+        segment_index += 1
+        result = pipeline.process(segment_audio, sample_rate_hz)
+        handle_result(result, playback, args.out_dir, segment_index)
+
     for start in range(0, len(audio) - frame_samples + 1, frame_samples):
         frame = audio[start:start + frame_samples]
         segment = segmenter.push(frame)
         if segment is not None:
-            segment_index += 1
-            handle_segment(pipeline, segment.audio, sample_rate_hz, playback, args.out_dir, segment_index)
+            process_and_handle(segment.audio)
     final = segmenter.flush()
     if final is not None:
-        segment_index += 1
-        handle_segment(pipeline, final.audio, sample_rate_hz, playback, args.out_dir, segment_index)
+        process_and_handle(final.audio)
 
     logger.info("processed %d segment(s) from %s", segment_index, args.input_file)
 
 
 def run_live_mode(args, pipeline: TranslationPipeline) -> None:
+    """Live mode MUST keep the microphone's real-time callback thread free
+    of slow work (pipeline.process() + blocking playback can take tens of
+    seconds - see core/streaming/session.py's docstring for the bug this
+    fixes), so segment processing runs on StreamingSession's background
+    worker thread; on_frames only does cheap VAD/segmentation + a
+    non-blocking queue push."""
     cfg = load_config()
     vad = WebRtcVAD(aggressiveness=cfg.vad.aggressiveness)
     segmenter = SpeechSegmenter(
@@ -155,11 +169,21 @@ def run_live_mode(args, pipeline: TranslationPipeline) -> None:
         max_segment_ms=cfg.vad.max_segment_ms,
     )
     playback = None if args.no_play else AudioPlayback()
-    segment_count = [0]
+    submitted_count = [0]
+    result_count = [0]
     leftover = bytearray()
     frame_samples = segmenter.frame_samples
 
+    def on_result(result) -> None:
+        result_count[0] += 1
+        handle_result(result, playback, args.out_dir, result_count[0])
+
+    session = StreamingSession(pipeline, cfg.audio.sample_rate_hz, on_result=on_result)
+
     def on_frames(pcm) -> None:
+        # Runs on PortAudio's real-time thread - must stay fast. VAD/segment
+        # assembly is cheap (a webrtcvad call + array ops); session.submit()
+        # is an O(1) queue push. Never call pipeline.process() or block here.
         nonlocal leftover
         import numpy as np
 
@@ -171,11 +195,13 @@ def run_live_mode(args, pipeline: TranslationPipeline) -> None:
             frame = np.frombuffer(bytes(chunk), dtype=np.int16)
             segment = segmenter.push(frame)
             if segment is not None:
-                segment_count[0] += 1
-                handle_segment(
-                    pipeline, segment.audio, cfg.audio.sample_rate_hz,
-                    playback, args.out_dir, segment_count[0],
-                )
+                submitted_count[0] += 1
+                if session.pending_count > 0:
+                    logger.info(
+                        "segment %d captured while %d earlier segment(s) still processing",
+                        submitted_count[0], session.pending_count,
+                    )
+                session.submit(segment.audio)
 
     capture = MicrophoneCapture(
         sample_rate_hz=cfg.audio.sample_rate_hz, channels=cfg.audio.channels,
@@ -187,11 +213,17 @@ def run_live_mode(args, pipeline: TranslationPipeline) -> None:
         time.sleep(args.duration)
     final = segmenter.flush()
     if final is not None:
-        segment_count[0] += 1
-        handle_segment(
-            pipeline, final.audio, cfg.audio.sample_rate_hz, playback, args.out_dir, segment_count[0]
-        )
-    logger.info("done: processed %d segment(s)", segment_count[0])
+        submitted_count[0] += 1
+        session.submit(final.audio)
+
+    if session.pending_count > 0:
+        logger.info("draining %d remaining segment(s)...", session.pending_count)
+    drain_deadline = time.perf_counter() + 300.0  # generous: base-model ASR can take ~90s/segment
+    while result_count[0] < submitted_count[0] and time.perf_counter() < drain_deadline:
+        time.sleep(0.2)
+    session.stop()
+
+    logger.info("done: captured %d segment(s), processed %d", submitted_count[0], result_count[0])
 
 
 def main() -> int:
