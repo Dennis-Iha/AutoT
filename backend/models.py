@@ -48,6 +48,35 @@ class Device(Base):
 
     owner: Mapped[User] = relationship(back_populates="devices")
     ota_jobs: Mapped[list[OTAJob]] = relationship(back_populates="device", cascade="all, delete-orphan")
+    metric_events: Mapped[list[MetricEvent]] = relationship(
+        back_populates="device", cascade="all, delete-orphan"
+    )
+
+
+class MetricEvent(Base):
+    """Phase 31: one aggregate, content-free product-metrics event.
+
+    Deliberately carries NO transcript/translation text and no audio -
+    Phase 21's privacy doc's explicit constraint on Phase 31, enforced here
+    at the schema level (there is no column to put that content in), not
+    just as a policy note someone could forget. `status` mirrors
+    core.orchestration.pipeline.PipelineStatus's values so a real pipeline
+    run's outcome maps directly onto one event with no translation
+    required.
+    """
+
+    __tablename__ = "metric_events"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(ForeignKey("devices.id"))
+    event_type: Mapped[str] = mapped_column(String)  # "translation_attempt"
+    status: Mapped[str] = mapped_column(String)  # a core.orchestration.pipeline.PipelineStatus value
+    source_language: Mapped[str | None] = mapped_column(String, nullable=True)
+    target_language: Mapped[str | None] = mapped_column(String, nullable=True)
+    total_latency_ms: Mapped[float | None] = mapped_column(nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    device: Mapped[Device] = relationship(back_populates="metric_events")
 
 
 class OTAJob(Base):

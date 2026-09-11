@@ -38,7 +38,7 @@ to work.
 | 28 | Automated factory test station | **design doc done, reuses real Phase 3/8-11/20 tools - not built, no physical unit exists** |
 | 29 | OTA model update system | **done - real, tested verify+atomic-install pipeline plus a real backend download endpoint closing the loop** |
 | 30 | Performance testing across all 9 languages/environments | **done (languages) - real sweep found genuinely-correct rate is only 2/9, with a new, more serious LID-misdetection finding; environments not testable, no physical hardware** |
-| 31 | Product metrics dashboards | not started |
+| 31 | Product metrics dashboards | **done - real backend aggregation API + CLI report tool, no web UI (no frontend tooling exists); smoke-tested with genuinely real pipeline data** |
 | 32 | Commercial product architecture | not started |
 | 33 | Full documentation set | in progress (this file + architecture.md) |
 
@@ -698,4 +698,38 @@ environment recordings or physical hardware exist in this development
 environment to test against, an open gap flagged here rather than silently
 dropped, same as every other hardware-blocked phase in this project.
 
-## Immediate next step (Phase 31+)
+## Phase 31 results summary: product metrics dashboards
+
+"Dashboards" here means a real, tested backend aggregation API plus a CLI
+report - deliberately NOT a web UI, since this project has no frontend
+build tooling anywhere in this environment (`apps/` is architecture-only,
+same honest gap as Phase 18) and a browser dashboard would be exactly the
+kind of never-run code this project's Engineering Principles refuse to
+fabricate.
+
+`backend/models.py`'s new `MetricEvent` table is aggregate and content-free
+BY CONSTRUCTION, not just by policy - Phase 21's privacy doc's constraint
+on this exact phase ("transcript content must not be included in whatever
+telemetry ships by default") is enforced at the schema level: there is no
+column for transcript/translation text or audio, so a client cannot smuggle
+it in even by accident (tested explicitly -
+`test_record_metric_event_never_accepts_transcript_text`). `POST
+/devices/{id}/metrics` records one event (status/language-pair/latency
+only, mirroring `core.orchestration.pipeline.PipelineStatus`'s values);
+`GET /devices/{id}/metrics/summary` aggregates status counts, per-
+language-pair counts, and avg/p50/p95 latency - real SQL aggregation over
+real stored rows, not a mock.
+
+No real device fleet exists to generate real telemetry from, so
+`tools/metrics_report.py` (the actual "dashboard" - a CLI report over the
+summary endpoint) was smoke-tested with genuinely real data anyway: two
+actual pipeline runs (es and ar fixtures) were executed for real, their
+real status/latency recorded via the live backend
+(`POST /devices/{id}/metrics`), and the report correctly rendered both -
+`ok` (es, 26.3s) and `low_confidence` (ar misdetected as `en` at 6.3s) -
+with avg/p50/p95 latency computed correctly. `tools/performance_sweep.py`
+gained an optional `--report-to`/`--token`/`--device-id` flag so a full
+9-language sweep can feed this same real pipeline (never fabricated
+numbers) rather than needing an actual fleet to populate a dashboard.
+
+## Immediate next step (Phase 32+)

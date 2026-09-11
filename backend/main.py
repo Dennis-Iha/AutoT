@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from backend.database import init_db
-from backend.routes import auth, devices, firmware, models
+from backend.routes import auth, devices, firmware, metrics, models
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.include_router(auth.router)
 app.include_router(devices.router)
 app.include_router(models.router)
 app.include_router(firmware.router)
+app.include_router(metrics.router)
 
 
 @app.get("/health")

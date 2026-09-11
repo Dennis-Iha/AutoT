@@ -22,14 +22,24 @@ here - there are no real-environment recordings or physical hardware in
 this development environment to test that against. Flagged as an open gap,
 not silently dropped.
 
+Optionally reports each real result to Phase 31's metrics backend
+(--report-to/--token/--device-id) as one aggregate, content-free
+MetricEvent per language (status + language pair + latency only - never
+transcript/translation text, matching MetricEventCreate's schema) - this is
+how tools/metrics_report.py's "dashboard" gets genuinely real data without
+a device fleet: from this project's own real pipeline runs, not fabricated.
+
 Usage:
     python -m tools.performance_sweep [--out results.json]
+    python -m tools.performance_sweep --report-to http://127.0.0.1:8000 \\
+        --token <jwt> --device-id <id>
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -51,10 +61,33 @@ def _resolve(p: str) -> Path:
     return path if path.is_absolute() else REPO_ROOT / path
 
 
+def _report_event(base_url: str, token: str, device_id: str, row: dict) -> None:
+    import httpx  # lazy: only needed when --report-to is used, keeps the base tool dependency-light
+
+    httpx.post(
+        f"{base_url}/devices/{device_id}/metrics",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "event_type": "translation_attempt",
+            "status": row["status"],
+            "source_language": row["detected_language"],
+            "target_language": "en",
+            "total_latency_ms": row["total_latency_ms"],
+        },
+        timeout=10.0,
+    ).raise_for_status()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--report-to", default=None, help="AT backend base URL to also POST results to")
+    parser.add_argument("--token", default=None, help="JWT from POST /auth/login (required with --report-to)")
+    parser.add_argument("--device-id", default=None, help="required with --report-to")
     args = parser.parse_args()
+    if args.report_to and not (args.token and args.device_id):
+        print("--report-to requires --token and --device-id", file=sys.stderr)
+        return 1
 
     cfg = load_config().asr
     binary_path = _resolve(cfg.binary_path)
@@ -132,6 +165,12 @@ def main() -> int:
               f"conf={result.detected_language.confidence if result.detected_language else 0:.2f} "
               f"{total_latency_ms/1000:.1f}s "
               f"{'-> ' + repr(result.translation.text) if result.translation else ''}{flag}")
+
+        if args.report_to:
+            try:
+                _report_event(args.report_to, args.token, args.device_id, rows[-1])
+            except Exception as e:  # noqa: BLE001 - reporting must never abort the sweep itself
+                print(f"    (metrics reporting failed, continuing sweep: {e})", file=sys.stderr)
 
     n_suspect = sum(r["suspect_misdetected_as_target"] for r in rows)
     n_genuinely_correct = passed - n_suspect

@@ -104,6 +104,17 @@ bypassing the LOW_CONFIDENCE safeguard that protects every other
 misdetection case. See `docs/roadmap.md`'s Phase 30 section for the full
 per-language table and the follow-up this surfaces.
 
+**Phase 31: product metrics, real backend + CLI report (no web UI).**
+`backend/routes/metrics.py` adds real, tested event ingestion and
+aggregation (`backend/models.py`'s `MetricEvent` is aggregate and
+content-free *by construction* — no column exists for transcript/
+translation text, enforcing Phase 21's privacy constraint at the schema
+level). `tools/metrics_report.py` is the actual "dashboard" — a CLI report,
+not a browser UI, since no frontend build tooling exists anywhere in this
+environment. Smoke-tested end to end with two genuinely real pipeline runs
+(not fabricated fleet data) reported to a live backend and rendered
+correctly.
+
 ## Initial language set
 
 English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali,

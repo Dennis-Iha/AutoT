@@ -75,3 +75,42 @@ class FirmwareReleaseResponse(BaseModel):
     version: str
     device_type: str
     release_notes: str
+
+
+class MetricEventCreate(BaseModel):
+    """Phase 31: deliberately has no field for transcript/translation text
+    or audio - Phase 21's privacy constraint enforced at the request-schema
+    level, not just documented as policy."""
+    event_type: str
+    status: str
+    source_language: str | None = None
+    target_language: str | None = None
+    total_latency_ms: float | None = None
+
+
+class MetricEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    device_id: str
+    event_type: str
+    status: str
+    source_language: str | None
+    target_language: str | None
+    total_latency_ms: float | None
+    recorded_at: datetime
+
+
+class LanguagePairCount(BaseModel):
+    source_language: str | None
+    target_language: str | None
+    count: int
+
+
+class MetricsSummaryResponse(BaseModel):
+    device_id: str
+    n_events: int
+    status_counts: dict[str, int]
+    language_pair_counts: list[LanguagePairCount]
+    avg_latency_ms: float | None
+    p50_latency_ms: float | None
+    p95_latency_ms: float | None
