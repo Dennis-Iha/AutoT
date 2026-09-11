@@ -64,11 +64,13 @@ Speaker
 Everything left of "IMPLEMENTED" above only claims to be an interface or a
 plan, not working code. See `docs/roadmap.md` for what phase each stage
 belongs to, and never report a stage as working without an automated test
-proving it (Engineering Principle #1). Note these stages are not yet wired
-together into one pipeline (that's Phase 8) - each is independently tested
-today, e.g. via `tools/asr_benchmark.py` and `tools/translation_benchmark.py`.
+proving it (Engineering Principle #1). As of Phase 8 these stages ARE wired
+together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
+`at-translate` CLI) - but read the Language ID row below and docs/roadmap.md's
+Phase 8 correction before assuming the wired pipeline works for all 9
+languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-7)
+## Current implementation status (as of Phase 0-8)
 
 | Component | Status | Where |
 |---|---|---|
@@ -89,10 +91,13 @@ today, e.g. via `tools/asr_benchmark.py` and `tools/translation_benchmark.py`.
 | Echo cancellation (NLMS) | done, tested; measured ~29dB ERLE on a stationary synthetic echo path; no double-talk protection yet | `core/denoise/echo_cancellation.py` |
 | Dereverberation (spectral tail subtraction) | done, tested; measured ~10dB reverberant-tail reduction; single-channel simplified technique, NOT full WPE | `core/denoise/dereverberation.py` |
 | Beamforming (delay-and-sum + TDOA estimation) | done, tested; measured ~8.5dB SNR gain from correct alignment vs naive averaging; synthetic 2-channel signals only, no real mic array | `core/beamforming/delay_sum.py` |
-| Language ID (whisper.cpp encoder, 9 languages) | done, tested on real (synthesized) speech per language; see `tools/language_id_benchmark.py` | `core/language_id/whisper_lid.py` |
-| ASR (whisper.cpp, tiny/base multilingual) | done, tested on real speech, exact-match transcription on English fixture; base model far from real-time on this CPU (up to ~90s for a 2s clip) - see `tools/asr_benchmark.py` | `core/asr/whisper_cpp_asr.py` |
+| Language ID (whisper.cpp encoder) | done and working, but measured accuracy on synthesized fixtures is only 2/9 (base) - 3/9 (small) correct; NOT a model-size problem (small gave confidently-wrong answers on 3 languages); real accuracy validation needs natural speech, tracked as an open Phase 30 gap - see `tools/language_id_benchmark.py` and docs/roadmap.md's Phase 8 correction | `core/language_id/whisper_lid.py` |
+| ASR (whisper.cpp, tiny/base/small multilingual) | done, tested; exact-match transcription on all 9 languages **with forced language** (bypasses LID); base model far from real-time on this CPU (up to ~90s for a 2s clip) - see `tools/asr_benchmark.py` | `core/asr/whisper_cpp_asr.py` |
 | Translation (CTranslate2, 8 source languages -> en) | done, tested; 270ms-1.2s warm latency, correct output for all 8; Spanish uniquely needs a BPE+Moses tokenizer (not SentencePiece) - see `tools/translation_benchmark.py` | `core/translation/ctranslate2_translator.py` |
 | TTS (Piper, English) | done, tested; 0.38-0.53 real-time factor (faster than real-time) after model load; TTS->ASR round-trip WER=0.0 on all 3 test sentences via an independent ASR system - see `tools/tts_benchmark.py` | `core/tts/piper_tts.py` |
+| Audio playback | done, unit-tested (mocked, doesn't play audio on every test run) + verified manually on real hardware | `core/audio/playback.py` |
+| Full pipeline wiring (LID->ASR->translation->TTS, confidence fallback) | done, tested with fakes (11 orchestration-logic tests) and real models (4 live tests using es/en, the languages LID reliably detects, plus the low-confidence fallback path using ar) | `core/orchestration/pipeline.py` |
+| `at-translate` CLI (mic or file input, live playback or WAV output) | done, smoke-tested in both file mode (real translated output produced) and live mic mode (starts/stops cleanly, zero false-positive segments on silence) | `tools/at_translate.py` |
 | Streaming orchestration / full CLI pipeline | not started (Phase 8/9) | `core/streaming/`, `core/orchestration/` (empty) |
 | Everything hardware/firmware/backend/mobile | not started (Phase 12+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
 

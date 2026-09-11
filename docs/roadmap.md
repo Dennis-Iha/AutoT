@@ -11,11 +11,11 @@ to work.
 | 1 | Audio engine (mic capture, ring buffer, WAV I/O, diagnostics) | **done** |
 | 2 | Voice activity detection (streaming VAD, speech segmenter) | **done** |
 | 3 | Audio cleanup (noise suppression, echo cancellation, dereverberation, beamforming) | **done** |
-| 4 | Language identification | **done** |
+| 4 | Language identification | **done, but accuracy gap found - see Phase 8 notes** |
 | 5 | ASR (offline multilingual speech recognition) | **done** |
 | 6 | Translation engine | **done** |
 | 7 | Text-to-speech | **done** |
-| 8 | Complete software pipeline (`at-translate` CLI) | not started |
+| 8 | Complete software pipeline (`at-translate` CLI) | **done** |
 | 9 | Real-time streaming + latency benchmarking | not started |
 | 10 | Offline mode / model manifest / checksum verification | not started |
 | 11 | Model optimization (quantization/distillation/pruning benchmarks) | not started |
@@ -88,12 +88,35 @@ synthesized, not natural, speech in the fixture manifest.
 
 Measured (tiny/base multilingual models, `tools/asr_benchmark.py` /
 `tools/language_id_benchmark.py`):
-- English fixture: exact-match transcription, LID confidence ~0.93.
-- All 9 languages: valid LID/ASR output shape, tested end-to-end.
+- ASR **with forced language** (`transcribe(audio, language=lang)`,
+  bypassing auto-detection): exact-match transcription for English; all 9
+  languages produce valid, non-empty output.
 - **Base model is far from real-time on this CPU**: up to ~90s to
   transcribe a ~2s clip for some languages with `-l auto`. This workstation
   proves correctness, not embedded feasibility - exactly why Phase 11
   (quantization) and Phase 12 (embedded/NPU hardware) exist.
+
+**Correction made during Phase 8, not swept under the rug**: the original
+version of this section claimed "all 9 languages: valid LID/ASR output
+shape, tested end-to-end" - true about shape, but `tools/
+language_id_benchmark.py` was never actually run and checked against all 9
+languages at the time, only spot-checked for English. Running it for real
+during Phase 8 found only **2/9 (22%) correct language detection** on the
+base model. Investigated rather than assumed: looping the clip 4x to rule
+out "too short" didn't help, and testing the larger "small" model (487MB)
+only reached 3/9 - *and* produced confidently WRONG answers for zh/hi/bn
+(0.79-0.85 confidence, above the 0.5 fallback threshold, so the pipeline's
+safety net wouldn't have caught them). This points to the espeak-ng
+SYNTHESIZED voices for several languages being a poor proxy for Whisper's
+language classifier specifically (as opposed to ASR-with-forced-language or
+TTS round-trip, both of which validate fine on synthesized audio) - not a
+model-size problem fixable by Phase 11 quantization work. Real LID accuracy
+validation needs natural human speech or a licensed multilingual speech
+corpus, neither available in this environment; tracked as a real, open gap
+for Phase 30, not claimed as solved. es/en (and en/ru on the small model)
+are the languages currently confirmed reliably detected on these fixtures -
+Phase 8's pipeline tests exercise those, plus the low-confidence-fallback
+path using ar (which the pipeline correctly refuses to mistranslate).
 
 ## Phase 6 results summary: translation (CTranslate2)
 
@@ -143,13 +166,62 @@ with Piper, transcribe back with whisper.cpp) gives an exact match
 (WER=0.0) on all 3 test sentences, evidence the audio is genuinely
 intelligible speech, not just non-silent output.
 
-## Immediate next step (Phase 8)
+## Phase 8 results summary: complete pipeline (`at-translate`)
 
-Wire the now-independently-working stages into one live pipeline: mic ->
-VAD -> denoise -> language ID -> ASR -> translation -> TTS -> speaker,
-as a CLI (`at-translate`). Reuse `tools/mic_vad_demo.py`'s microphone
-capture and `core/vad/segmenter.py`'s speech segments as the entry point;
-each detected segment flows through the chain built in Phases 3-7. Latency
-will be dominated by ASR (Phase 5's ~90s worst case on this CPU) until
-Phase 11 optimizes it - measure the full pipeline's end-to-end latency
-honestly rather than assuming Phase 9's streaming work will fix it first.
+`core/orchestration/pipeline.py`'s `TranslationPipeline` wires language ID
+-> ASR -> translation -> TTS behind one `process(audio, sample_rate_hz)`
+call, with an explicit `PipelineStatus` for each way a segment can
+legitimately not produce speech (`LOW_CONFIDENCE`, `UNSUPPORTED_LANGUAGE`,
+`EMPTY_TRANSCRIPTION`, `ERROR`) rather than silently swallowing failures or
+crashing. `core/audio/playback.py` (new - only capture existed before) plus
+`tools/at_translate.py` wire it to a real microphone/speaker or a WAV
+file (`--input-file`, useful for reproducible testing and batch use without
+live hardware). Denoise (Phase 3) is NOT yet in this chain - deferred, see
+below.
+
+**The important finding from building this phase**: running
+`tools/language_id_benchmark.py` for real during Phase 8 (it existed since
+Phase 4 but had never actually been executed and checked against all 9
+languages - a real verification gap, not hidden here) found only 2/9 (22%)
+correct language detection on the base model against this project's
+espeak-ng-synthesized fixtures. Investigated, not assumed: neither a 4x
+longer clip nor the larger "small" model (487MB) fixed it - small reached
+3/9 but gave confidently WRONG answers (0.79-0.85, above the 0.5 fallback
+threshold) for 3 languages, which is a more dangerous failure mode than
+base's mostly-low-confidence wrong guesses. This points to the synthesized
+voices being a poor proxy for Whisper's language *classifier* specifically
+(ASR-with-forced-language and TTS round-trip both validate fine on the same
+audio), not a model-size problem. Real LID validation needs natural human
+speech or a licensed corpus - neither available here - so this is tracked
+as a genuine open gap for Phase 30, not solved.
+
+Given that, `core/orchestration/pipeline.py`'s low-confidence fallback
+(required by the master spec: "do not immediately translate if confidence
+is too low") is not just a nice-to-have - it is the thing currently
+protecting the pipeline from confidently mistranslating from a wrong
+language guess on 6-7 of 9 languages. `tests/orchestration/test_pipeline_live.py`
+tests both the happy path (es, reliably detected) and this fallback path
+(ar, reliably NOT detected) with real models, rather than assuming uniform
+9-language accuracy the way earlier Phase 4 documentation incorrectly did
+(now corrected here and in docs/architecture.md).
+
+Measured end-to-end (`tools/at_translate.py --input-file`, base ASR model):
+a Spanish 2-second clip produced correct English speech output in ~41s
+total (language_id=13s, asr=17s, translation=2.4s, tts=8.5s) - consistent
+with Phase 5's finding that the base model is far from real-time on this
+CPU; Phase 11 (quantization) and Phase 12 (embedded/NPU hardware) remain
+the path to fixing that, not this phase.
+
+## Immediate next step (Phase 9)
+
+Real-time streaming: process audio in chunks as it arrives rather than
+waiting for a complete VAD segment before starting ASR, and pipe partial
+ASR hypotheses into incremental translation/TTS. Given Phase 8's measured
+~41s total latency for one short utterance (dominated by ASR), prioritize
+investigating why language_id + asr together cost ~30s before assuming
+streaming alone fixes user-perceived latency - profile whether a smaller
+model or reused warm state closes more of the gap than chunking does.
+Also revisit whether Phase 3's denoise/beamforming should sit in this live
+chain (currently bypassed) now that there's an end-to-end pipeline to
+measure its real effect on, rather than only the synthetic benchmarks from
+Phase 3.

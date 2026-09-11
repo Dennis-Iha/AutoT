@@ -32,6 +32,7 @@ dev = [
 
 [project.scripts]
 at-audio-demo = "tools.mic_vad_demo:main"
+at-translate = "tools.at_translate:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["core", "tools"]

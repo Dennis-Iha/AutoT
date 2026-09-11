@@ -25,6 +25,17 @@ straight from ASR to TTS):
 Do not report a language as supported to end users until it reaches
 "production" — see docs/architecture.md, "Language coverage is a claim, not
 an assumption."
+
+IMPORTANT CAVEAT (found during Phase 8, kept here so it isn't lost): a
+"translation_ready" status certifies the TEXT translation model only
+(benchmarked in tools/translation_benchmark.py by feeding it known text
+directly). It does NOT certify that spoken audio in that language reliably
+reaches the translator through language ID - whisper.cpp's language
+detection measured only 2-3/9 correct on this project's synthesized test
+fixtures (see docs/roadmap.md's Phase 8 section), so for most of these
+languages the live audio->LID->ASR->translate chain is NOT yet proven
+end-to-end, only the translate step in isolation. Don't conflate the two
+when deciding what to tell users works.
 """
 
 from __future__ import annotations

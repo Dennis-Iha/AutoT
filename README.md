@@ -17,12 +17,14 @@ See `docs/architecture.md` for the full layered architecture and
 
 ## Status
 
-**Phases 0-6 done**: project foundation, audio capture, VAD, audio cleanup
-(denoise/echo-cancel/dereverb/beamforming), language ID, ASR (whisper.cpp),
-and translation (CTranslate2) — all running and tested on a Linux
-workstation. TTS (Phase 7) and wiring these into one live pipeline (Phase 8)
-are next. See `docs/architecture.md`'s status table for exactly what's
-tested vs. still a stub.
+**Phases 0-8 done**: project foundation, audio capture/playback, VAD, audio
+cleanup, language ID, ASR (whisper.cpp), translation (CTranslate2), TTS
+(Piper), and a complete wired pipeline (`at-translate`) — all running and
+tested on a Linux workstation. See `docs/architecture.md`'s status table for
+exactly what's tested vs. still a stub, and `docs/roadmap.md`'s Phase 8
+section for an important correction: language ID accuracy on this project's
+synthesized test fixtures is honestly only 2-3/9 languages, not all 9 - read
+that before assuming translation works for every language end-to-end today.
 
 ## Initial language set
 
@@ -49,16 +51,27 @@ Run the microphone → VAD → speech-segment demo:
 python -m tools.mic_vad_demo --duration 10 --out-dir /tmp/at_segments
 ```
 
-ASR/language-ID and translation need two one-time setup scripts (build
-whisper.cpp from source, ~150MB of ggml models; download ~1GB of CTranslate2
-translation models) before their tests run for real instead of skipping:
+ASR/language-ID, translation, and TTS need three one-time setup scripts
+(build whisper.cpp from source, ~150MB of ggml models; download ~1GB of
+CTranslate2 translation models; ~63MB Piper voice) before their tests run
+for real instead of skipping:
 
 ```bash
 tools/setup_whisper_cpp.sh          # -> third_party/whisper.cpp, models/asr/whisper/
 tools/setup_translation_models.sh   # -> models/translation/argos/
+tools/setup_tts_models.sh           # -> models/tts/piper/
 python -m tools.asr_benchmark            # per-language WER/CER/latency
-python -m tools.language_id_benchmark    # per-language LID accuracy
+python -m tools.language_id_benchmark    # per-language LID accuracy (currently weak, see docs/roadmap.md)
 python -m tools.translation_benchmark    # per-language-pair latency + output
+python -m tools.tts_benchmark            # TTS latency + TTS->ASR round-trip WER
+```
+
+Run the complete pipeline (mic → VAD → language ID → ASR → translation →
+TTS → speaker):
+
+```bash
+at-translate --duration 30                              # live mic, speaks the English translation
+at-translate --input-file some_speech.wav --no-play --out-dir /tmp/out  # batch/file mode
 ```
 
 ## Repository layout
