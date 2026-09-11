@@ -8,6 +8,7 @@ catalog."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from backend.auth import get_current_user
@@ -15,6 +16,7 @@ from backend.database import get_db
 from backend.models import Device, OTAJob, User
 from backend.schemas import ModelPackageResponse, OTAJobResponse, OTARequest
 from core.asr.model_registry import ASRModelRegistry
+from core.ota.model_updater import resolve_update_targets
 from core.translation.model_registry import TranslationModelRegistry
 from core.tts.voice_registry import VoiceRegistry
 
@@ -53,6 +55,26 @@ def list_models() -> list[ModelPackageResponse]:
             ))
 
     return result
+
+
+@router.get("/models/{model_id}/download")
+def download_model(model_id: str) -> FileResponse:
+    """Phase 29: the actual byte transport half of OTA, closing the loop
+    `GET /models` (metadata) leaves open. No auth check, deliberately
+    consistent with `GET /models` above - the real security boundary for a
+    model package is its checksum+signature (Phase 20/29's
+    core.ota.model_updater), verified client-side after download, not
+    access control on the download itself.
+
+    Reuses core.ota.model_updater.resolve_update_targets() for the
+    model_id -> real file path mapping instead of a second lookup table -
+    the same registries Phase 10 already built, same as list_models()
+    above."""
+    targets = {t.id_: t for t in resolve_update_targets()}
+    target = targets.get(model_id)
+    if target is None or not target.install_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="model package not found")
+    return FileResponse(target.install_path, media_type="application/octet-stream")
 
 
 @router.post(

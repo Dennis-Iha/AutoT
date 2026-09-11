@@ -81,6 +81,17 @@ physical unit exists yet. The central finding worth knowing: no chip this
 project has evaluated sits in the power/compute band AT's Whisper-class
 workload actually needs.
 
+**Phase 29: OTA model update system, real and tested.** `core/ota/model_updater.py`
+extends Phase 10's checksums and Phase 20's signatures into a real
+verify-then-atomically-install pipeline that fails closed (a signed entry
+with no public key given is rejected, never silently downgraded to
+checksum-only) and never touches a working installed model until a staged
+update fully passes every check — directly targeting the failure class
+Phase 7 hit for real (a truncated download treated as complete). A new
+`GET /models/{model_id}/download` backend endpoint and
+`tools/ota_download_and_apply.py` client close the loop end to end,
+smoke-tested against a live server on this workstation.
+
 ## Initial language set
 
 English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali,

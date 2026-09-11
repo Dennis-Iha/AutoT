@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-28; Phase 12-15/18/22-28 are desk research/design docs, no physical hardware)
+## Current implementation status (as of Phase 0-29; Phase 12-15/18/22-28 are desk research/design docs, no physical hardware)
 
 | Component | Status | Where |
 |---|---|---|
@@ -116,6 +116,7 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Custom PCB + earbud miniaturization | requirements documented, no schematic; blocked on Phase 12/22's unresolved SoC selection | `hardware/pcb-and-miniaturization.md` |
 | Charging case | design doc done, real competitor reference (Timekettle case-assisted-runtime model); battery sizing blocked on Phase 22 | `hardware/charging-case.md` |
 | Manufacturing (EVT/DVT/PVT) + automated factory test | process + AT-specific acceptance criteria documented, reusing real Phase 3/8-11/20 tools; not executed, no physical unit exists | `hardware/manufacturing-and-factory-test.md` |
+| OTA model update system (verify + atomic install + real download endpoint) | done, tested (9 unit/live tests + a real end-to-end backend download+install test + a real smoke test against a live uvicorn server); fails closed on missing signature verification, leaves existing model untouched on any failed update | `core/ota/model_updater.py`, `backend/routes/models.py`'s `/models/{id}/download`, `tools/ota_download_and_apply.py` |
 
 ## Language coverage is a claim, not an assumption
 

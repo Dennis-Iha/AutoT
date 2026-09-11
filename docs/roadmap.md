@@ -36,7 +36,7 @@ to work.
 | 26 | Charging case | **design doc done (real competitor reference: Timekettle) - battery sizing blocked on Phase 22** |
 | 27 | Manufacturing (EVT/DVT/PVT plans) | **process + AT-specific acceptance criteria documented - not executed, no physical unit exists** |
 | 28 | Automated factory test station | **design doc done, reuses real Phase 3/8-11/20 tools - not built, no physical unit exists** |
-| 29 | OTA model update system | not started |
+| 29 | OTA model update system | **done - real, tested verify+atomic-install pipeline plus a real backend download endpoint closing the loop** |
 | 30 | Performance testing across all 9 languages/environments | not started |
 | 31 | Product metrics dashboards | not started |
 | 32 | Commercial product architecture | not started |
@@ -592,18 +592,57 @@ than invent numbers, each document cites real, sourced reference data:
   verification, Phase 8's pipeline) rather than inventing generic
   factory-test logic.
 
-## Immediate next step (Phase 29+)
+## Phase 29 results summary: OTA model update system
 
-Phase 29 (OTA model update system) is real software work: it extends
-Phase 10's model registries/checksums, Phase 19's backend firmware/OTA
-endpoints, and Phase 20's signature verification into an actual client-side
-update flow (download -> verify -> atomic swap), buildable and testable
-without physical hardware since it's exercising the same registries/backend
-already proven real. Phase 30 (performance testing across all 9 languages)
-also has a real software-buildable core: running this project's existing
-per-language benchmark tools (`tools/asr_benchmark.py`,
-`tools/translation_benchmark.py`, `tools/tts_benchmark.py`,
-`tools/language_id_benchmark.py`) as one consolidated sweep and reporting
-honest pass/fail per language - "across all... environments" (real-world
-noise, device variance) stays an open gap requiring physical hardware,
-flagged rather than quietly dropped.
+Extends three earlier phases into one real, tested client-side update flow
+rather than a design document: Phase 10's model registries/checksums,
+Phase 19's backend, and Phase 20's Ed25519 signatures.
+`core/ota/model_updater.py` is the verify-then-atomically-install primitive
+(`apply_update`) - checksum, then signature (fails CLOSED if a manifest
+entry is signed but no public key was given, not silently falling back to
+checksum-only), then `os.replace` into the live install path only after
+every check passes. This directly targets the exact failure class Phase 7
+hit for real (a silently truncated download treated as a complete model):
+a failed/partial/tampered update now leaves the existing working model
+completely untouched, proven by tests, not just designed to (9 tests in
+`tests/ota/test_model_updater.py`, including one that runs the real
+verify+install pipeline against a genuine currently-installed translation
+model's real checksum and Phase 20 signature, not synthetic test data).
+
+`backend/routes/models.py` gained `GET /models/{model_id}/download`
+(`core.ota.model_updater.resolve_update_targets()` reused for the id->file
+mapping, no new lookup table), closing the loop `GET /models` (metadata
+only) left open - this is the actual byte-transport half of OTA, not just
+another metadata endpoint. `tests/backend/test_models_and_firmware.py`
+gained a full-loop test that downloads real bytes through the real FastAPI
+route (TestClient, no mocked HTTP) and runs them through the real install
+pipeline end to end.
+
+`tools/ota_download_and_apply.py` is the actual network client (httpx,
+kept OUT of `core/` deliberately - `core/` has zero network dependencies,
+per Phase 21's privacy doc, and this preserves that). Smoke-tested for
+real against a live `uvicorn` instance of the backend on this workstation:
+downloaded `whisper-tiny` and got `unchanged` (already correctly
+installed), then the model file was moved aside to simulate a missing
+model and the tool was re-run - this surfaced a real, honest environment
+limitation rather than hiding it: in this single-machine dev environment,
+the "backend" and the "device" share one filesystem, so removing the
+installed file removes it from the backend's own registry lookup too, and
+the download 404s from both sides simultaneously. This isn't fixable
+without a genuinely separate package host, which doesn't exist here - the
+file was restored (checksum-verified identical to its original) and the
+limitation is recorded here rather than glossed over. The 9-test
+`tests/ota/` suite and the backend's full-loop test don't have this
+limitation (they stage into `tmp_path`, a separate location from the live
+registry), so the actual verify+install logic is still genuinely,
+fully tested end to end.
+
+## Immediate next step (Phase 30+)
+
+Phase 30 (performance testing across all 9 languages) has a real
+software-buildable core: running this project's existing per-language
+benchmark tools (`tools/asr_benchmark.py`, `tools/translation_benchmark.py`,
+`tools/tts_benchmark.py`, `tools/language_id_benchmark.py`) as one
+consolidated sweep and reporting honest pass/fail per language - "across
+all... environments" (real-world noise, device variance) stays an open gap
+requiring physical hardware, flagged rather than quietly dropped.
