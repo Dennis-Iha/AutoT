@@ -20,13 +20,13 @@ to work.
 | 10 | Offline mode / model manifest / checksum verification | **done** |
 | 11 | Model optimization (quantization/distillation/pruning benchmarks) | **done** |
 | 12 | Embedded development platform selection | **desk research done - physical validation pending real hardware** |
-| 13 | AT Headphones prototype (first standalone physical product) | not started |
-| 14 | Embedded audio (I2S/PDM drivers, HAL) | not started |
-| 15 | Firmware (bootloader, secure boot, OTA) | not started |
-| 16 | Dual-earbud system (master election, promotion, sync) | not started |
-| 17 | AT Conversation Mode (two-direction translation) | not started |
-| 18 | Mobile companion app | not started |
-| 19 | Backend (auth, device registry, model/firmware registry, OTA) | not started |
+| 13 | AT Headphones prototype (first standalone physical product) | **desk research done (architecture doc) - no physical hardware to build on** |
+| 14 | Embedded audio (I2S/PDM drivers, HAL) | **architecture doc only - no physical hardware to write/test drivers against** |
+| 15 | Firmware (bootloader, secure boot, OTA) | **architecture doc only - no physical hardware to build/test firmware on** |
+| 16 | Dual-earbud system (master election, promotion, sync) | **done - real, tested coordination logic (hardware-agnostic protocol)** |
+| 17 | AT Conversation Mode (two-direction translation) | **done - real, tested (extended translation to full bidirectional, 16 pairs)** |
+| 18 | Mobile companion app | **architecture doc only - no mobile SDK/device/emulator in this environment** |
+| 19 | Backend (auth, device registry, model/firmware registry, OTA) | **done - real, tested FastAPI backend** |
 | 20 | Security (secure boot, signed firmware, encrypted comms) | not started |
 | 21 | Privacy controls and documentation | not started |
 | 22 | Battery engineering | not started |
@@ -409,17 +409,95 @@ target). This is explicitly NOT a purchase order or a claim that anything
 has been physically tested - see the document's own "what this
 recommendation is not" section.
 
-## Immediate next step (Phase 13+)
+## Phases 13-15, 18 results summary: honestly-scoped design documents
 
-Phases 13 onward (AT Headphones prototype, embedded audio drivers,
-firmware, dual-earbud system, mobile app, backend, security/privacy,
-battery/thermal engineering, custom PCB, miniaturization, manufacturing,
-factory test) all require physical hardware, lab equipment, or
-infrastructure (a phone to run a mobile app on, a server to deploy a
-backend to) this sandboxed development environment does not have. Continue
-honestly: produce what's genuinely producible without fabricating physical
-results (backend/mobile app scaffolding that runs and is tested locally,
-firmware architecture documents, security/privacy policy documents,
-manufacturing process templates), and clearly flag every phase that
-requires equipment or access this environment cannot provide rather than
-simulating success.
+No physical hardware, mobile SDK, or device/emulator exists in this
+environment (confirmed: no `node`/`npm`/`flutter`/`dart` toolchain
+installed, and this is a headless Linux workstation regardless). Rather
+than fabricate driver code or a mobile app that has never run, each of
+these phases produced an architecture/design document instead, following
+the same honest-labeling pattern `hardware/hardware-selection.md`
+established in Phase 12: `hardware/AT-H1-headphone-prototype.md` (Phase 13),
+`firmware/architecture.md` (Phases 14-15), `apps/mobile-app-architecture.md`
+(Phase 18). Each is explicit about what's proven (the Phases 2-11 software
+stack) vs. what's a design estimate (everything requiring physical
+validation).
+
+## Phase 16 results summary: dual-earbud coordination
+
+`core/coordination/node.py`'s `EarbudNode` implements master election,
+peer-failure detection, and automatic promotion as hardware-agnostic
+distributed-systems logic, tested against a simulated in-memory channel
+(`core/coordination/channel.py`) rather than real BLE hardware (none
+exists) - the same approach any distributed system's consensus/election
+logic would use before real network testing. All scenarios the master spec
+explicitly names are covered by real tests: left only, right only, both
+together (higher-fitness node becomes master), primary failure (secondary
+auto-promotes to full standalone capability, not just "still secondary"),
+battery degradation (dynamic re-election), and packet loss (50% simulated
+drop rate doesn't cause incorrect state). The critical property enforced by
+design: every node defaults to `Role.STANDALONE` (full independent
+capability) whenever no peer is reachable - MASTER/SECONDARY only exists as
+an optimization when both are connected, never a dependency.
+
+## Phase 17 results summary: Conversation Mode
+
+`core/orchestration/conversation.py`'s `ConversationSession` reuses Phase
+8's `TranslationPipeline` unchanged - two lightweight direction-specific
+wrappers sharing the same underlying ASR/LID/translation/TTS engine
+instances (verified: `session._pipelines["A"].asr_engine is asr`, not a
+reloaded copy). Honest scope limit, not silently assumed away: automatic
+speaker diarization (inferring who's talking from raw audio alone) is a
+real, unimplemented research problem this project has no model or
+multi-mic hardware for - `process_utterance` requires the caller to say
+which side is speaking rather than guessing.
+
+Building this surfaced a real gap and led to completing it for real: the
+first live test assumed en->es translation existed and failed with
+`unsupported_language` - correctly, since Phase 6 only ever built
+X->English. Rather than write around the gap, downloaded the missing
+en->X direction for all 8 v1 languages from the same Argos model source
+used in Phase 6 (all 8 packages existed), extending
+`tools/setup_translation_models.sh` to support arbitrary pair directions.
+Translation is now genuinely bidirectional for all 9 languages (16 model
+pairs total, `models/registry/translation_models.json`), verified with a
+real Spanish<->English two-directional exchange test
+(`tests/orchestration/test_conversation_live.py`).
+
+## Phase 19 results summary: backend
+
+A real, tested FastAPI + SQLAlchemy backend (`backend/`) implementing every
+endpoint the master spec names (`POST /auth/register`, `POST /auth/login`,
+`GET/POST /devices`, `GET /devices/{id}`, `GET /models`,
+`POST /devices/{id}/models`, `GET /firmware`, `POST /devices/{id}/ota`).
+Uses SQLite for local dev/test (zero extra services - no Docker daemon in
+this environment, and PostgreSQL would need another sudo install) behind a
+`AT_DATABASE_URL` environment variable, matching the master spec's own
+"don't overengineer it... scale later" Phase 0 guidance rather than a
+permanent architectural choice. `GET /models` deliberately reuses Phases
+6/7/10's real model registries instead of a second, divergent list - what
+it returns is exactly what `core.common.offline_runtime` would find on
+this machine, checksums included. `GET /firmware` honestly returns an
+empty list (no firmware has been built - Phase 15 is a design document).
+
+Caught and fixed a real dependency-compatibility bug while building this,
+not a hypothetical one: `passlib` 1.7.4 (unmaintained since 2020) probes
+`bcrypt.__about__.__version__` to detect its backend, which the installed
+`bcrypt` 5.0.0 no longer exposes - this silently mis-detected the backend
+and then raised "password cannot be longer than 72 bytes" for an 8-
+character password. Fixed by calling `bcrypt` directly instead of routing
+through passlib's broken version-sniffing shim. 20 backend tests, all
+passing, ruff and mypy clean (backend/ added to the mypy gate).
+
+## Immediate next step (Phase 20+)
+
+Phase 20 (security) and Phase 21 (privacy) both have real software-only
+components buildable without physical hardware: model package signing
+(extending Phase 10's checksums with actual cryptographic signatures) and
+verifiable no-audio-persistence behavior (already true by construction in
+`core/orchestration/pipeline.py` - worth an explicit test proving it, not
+just an assumption). Phases 22-30 (battery, thermal, PCB, miniaturization,
+manufacturing, factory test, performance testing) need physical hardware
+this environment doesn't have - continue the same honest pattern:
+real, tested work where the environment allows it, clearly-labeled design
+documents where it doesn't, never simulated as tested.

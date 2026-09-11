@@ -29,6 +29,16 @@ dev = [
     "mypy>=1.10",
     "ruff>=0.6",
 ]
+backend = [
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "bcrypt>=4.0",
+    "pyjwt>=2.8",
+    "httpx>=0.27",
+    "python-multipart>=0.0.9",
+    "email-validator>=2.0",
+]
 
 [project.scripts]
 at-audio-demo = "tools.mic_vad_demo:main"
@@ -47,3 +57,8 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint.per-file-ignores]
+# Depends(...) in a default argument is FastAPI's standard dependency-
+# injection pattern, not the general antipattern B008 flags.
+"backend/**/*.py" = ["B008"]

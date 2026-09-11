@@ -26,12 +26,20 @@ Phase 11 found something genuinely useful: the most aggressive quantization
 was NOT the fastest one on this CPU — see `docs/roadmap.md`'s Phase 11
 section before assuming "smaller = faster."
 
-**Phase 12 (embedded hardware selection) is desk research only** — see
-`hardware/hardware-selection.md`. This environment has no physical hardware
-to validate against; from here on, phases that need physical devices, lab
-equipment, or infrastructure this environment doesn't have are handled
-honestly: real work where possible, clearly flagged as unvalidated where
-not, never simulated as if tested. See `docs/architecture.md`'s status table for
+**Phases 12-19: hardware-blocked phases handled honestly, software-only
+phases built for real.** No physical hardware, mobile SDK, or device exists
+in this environment. Phases 12-15 and 18 (hardware selection, headphone
+prototype, embedded audio, firmware, mobile app) are desk-research/design
+documents only — see `hardware/hardware-selection.md`,
+`hardware/AT-H1-headphone-prototype.md`, `firmware/architecture.md`,
+`apps/mobile-app-architecture.md`. Phases 16, 17, and 19 (dual-earbud
+coordination, Conversation Mode, backend) are genuinely software-testable
+without physical hardware and are real, tested code — including extending
+translation to full bidirectional support (16 language pairs) once
+Conversation Mode needed it. See `docs/roadmap.md` for the full
+phase-by-phase detail, including two real bugs found and fixed along the
+way (a mobile-blocking audio-thread bug in Phase 9, a passlib/bcrypt
+compatibility bug in Phase 19). See `docs/architecture.md`'s status table for
 exactly what's tested vs. still a stub, and `docs/roadmap.md`'s Phase 8/9
 sections for two important corrections: language ID accuracy on this
 project's synthesized test fixtures is honestly only 2-3/9 languages, not
@@ -90,6 +98,14 @@ TTS → speaker):
 ```bash
 at-translate --duration 30                              # live mic, speaks the English translation
 at-translate --input-file some_speech.wav --no-play --out-dir /tmp/out  # batch/file mode
+```
+
+Run the backend (auth/devices/models/firmware - never processes speech):
+
+```bash
+pip install -e ".[backend]"
+uvicorn backend.main:app --reload   # http://127.0.0.1:8000/docs for the interactive API docs
+pytest tests/backend                # 20 tests, SQLite in-memory, no external services needed
 ```
 
 ## Repository layout

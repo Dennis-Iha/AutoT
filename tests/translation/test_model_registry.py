@@ -1,12 +1,23 @@
 from core.translation.model_registry import TranslationModelRegistry
 
-EXPECTED_PAIRS = {("ar", "en"), ("bn", "en"), ("zh", "en"), ("fr", "en"),
-                  ("hi", "en"), ("pt", "en"), ("ru", "en"), ("es", "en")}
+V1_LANGUAGES = {"ar", "bn", "zh", "fr", "hi", "pt", "ru", "es"}
+# Phase 6 originally built only X->en (needed for Listen Mode); Phase 17's
+# Conversation Mode needs the reverse direction too (bidirectional exchange
+# between two people), so both directions were added using the same Argos
+# model source - see docs/roadmap.md's Phase 17 section.
+EXPECTED_PAIRS = {(lang, "en") for lang in V1_LANGUAGES} | {("en", lang) for lang in V1_LANGUAGES}
 
 
 def test_registry_loads_all_v1_pairs():
     registry = TranslationModelRegistry.load()
     assert set(registry.pairs()) == EXPECTED_PAIRS
+
+
+def test_registry_is_bidirectional_for_every_v1_language():
+    registry = TranslationModelRegistry.load()
+    for lang in V1_LANGUAGES:
+        assert registry.get(lang, "en") is not None
+        assert registry.get("en", lang) is not None
 
 
 def test_get_known_pair():

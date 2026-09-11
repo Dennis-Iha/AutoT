@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-11, plus Phase 12 desk research)
+## Current implementation status (as of Phase 0-19; Phase 12-15/18 are desk research/design docs, no physical hardware)
 
 | Component | Status | Where |
 |---|---|---|
@@ -93,7 +93,7 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Beamforming (delay-and-sum + TDOA estimation) | done, tested; measured ~8.5dB SNR gain from correct alignment vs naive averaging; synthetic 2-channel signals only, no real mic array | `core/beamforming/delay_sum.py` |
 | Language ID (whisper.cpp encoder) | done and working, but measured accuracy on synthesized fixtures is only 2/9 (base) - 3/9 (small) correct; NOT a model-size problem (small gave confidently-wrong answers on 3 languages); real accuracy validation needs natural speech, tracked as an open Phase 30 gap - see `tools/language_id_benchmark.py` and docs/roadmap.md's Phase 8 correction | `core/language_id/whisper_lid.py` |
 | ASR (whisper.cpp, tiny/base/small multilingual) | done, tested; exact-match transcription on all 9 languages **with forced language** (bypasses LID); base model far from real-time on this CPU (up to ~90s for a 2s clip) - see `tools/asr_benchmark.py` | `core/asr/whisper_cpp_asr.py` |
-| Translation (CTranslate2, 8 source languages -> en) | done, tested; 270ms-1.2s warm latency, correct output for all 8; Spanish uniquely needs a BPE+Moses tokenizer (not SentencePiece) - see `tools/translation_benchmark.py` | `core/translation/ctranslate2_translator.py` |
+| Translation (CTranslate2, bidirectional, all 9 v1 languages) | done, tested; 270ms-1.2s warm latency; 16 model pairs (X->en and en->X for all 8 non-English languages, extended in Phase 17 for Conversation Mode); Spanish uniquely needs a BPE+Moses tokenizer (not SentencePiece) - see `tools/translation_benchmark.py` | `core/translation/ctranslate2_translator.py` |
 | TTS (Piper, English) | done, tested; 0.38-0.53 real-time factor (faster than real-time) after model load; TTS->ASR round-trip WER=0.0 on all 3 test sentences via an independent ASR system - see `tools/tts_benchmark.py` | `core/tts/piper_tts.py` |
 | Audio playback | done, unit-tested (mocked, doesn't play audio on every test run) + verified manually on real hardware | `core/audio/playback.py` |
 | Full pipeline wiring (LID->ASR->translation->TTS, confidence fallback) | done, tested with fakes (11 orchestration-logic tests) and real models (4 live tests using es/en, the languages LID reliably detects, plus the low-confidence fallback path using ar) | `core/orchestration/pipeline.py` |
@@ -104,7 +104,12 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Offline readiness check (aggregates all 3 registries + whisper.cpp binary) | done, tested; verified for real - all 11 checks pass in ~15s with full checksums | `core/common/offline_runtime.py`, `tools/check_offline_readiness.py` |
 | ASR quantization benchmark (q4_0/q5_0/q8_0 vs f16) | done; real measured finding: q8_0 is fastest (6.4s avg, 3.2x speedup) despite NOT being the smallest file - quantization level and speed are not monotonically related on this CPU; WER/CER essentially unaffected by quantization. Power not measured (no root RAPL/perf access) - see docs/roadmap.md's Phase 11 section | `tools/quantize_asr_models.sh`, `tools/quantization_benchmark.py` |
 | Embedded hardware selection (Jetson/QCS6490/i.MX 8M Plus comparison) | desk research done, real official specs cited; physical validation NOT possible in this environment (no hardware) - key finding: whisper.cpp acceleration support differs sharply across candidates, invisible from TOPS alone | `hardware/hardware-selection.md` |
-| Everything else hardware/firmware/backend/mobile | not started - all require physical hardware/devices this environment doesn't have (Phase 13+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
+| AT-H1 headphone prototype / embedded audio / firmware architecture | design documents only - no physical hardware to build/test on | `hardware/AT-H1-headphone-prototype.md`, `firmware/architecture.md` |
+| Dual-earbud coordination (master election, failure detection, promotion) | done, tested (11 tests) against a simulated channel - no real BLE hardware exists; every spec-required scenario covered (left only, right only, both, primary failure, battery degradation, packet loss) | `core/coordination/node.py`, `core/coordination/channel.py` |
+| Conversation Mode (two-direction translation) | done, tested with fakes (9 tests) and real models (3 live tests, real Spanish<->English exchange); speaker identification is explicit caller input, NOT automatic diarization (unimplemented, honestly scoped) | `core/orchestration/conversation.py` |
+| Mobile app architecture | design document only - no mobile SDK, device, or emulator in this environment | `apps/mobile-app-architecture.md` |
+| Backend (auth, devices, models, firmware/OTA) | done, tested (20 tests); FastAPI + SQLAlchemy + SQLite (no Docker/Postgres server in this environment); `GET /models` reuses Phases 6/7/10's real registries, not a second mock list | `backend/` |
+| Custom PCB, miniaturization, charging case, manufacturing, factory test, battery/thermal engineering | not started - all require physical hardware and lab equipment this environment doesn't have (Phase 22-30) | `hardware/` (skeleton) |
 
 ## Language coverage is a claim, not an assumption
 

@@ -24,3 +24,4 @@ models/translation/argos/
 models/tts/piper/
 *.log
 .DS_Store
+*.db
