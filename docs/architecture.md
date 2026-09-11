@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-21; Phase 12-15/18 are desk research/design docs, no physical hardware)
+## Current implementation status (as of Phase 0-28; Phase 12-15/18/22-28 are desk research/design docs, no physical hardware)
 
 | Component | Status | Where |
 |---|---|---|
@@ -112,7 +112,10 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Model package signing (Ed25519, extends Phase 10 checksums) | done, tested (7 unit tests + real end-to-end run against all 20 installed model manifest entries, all verify); signs the SHA256 digest, not raw file bytes; dev keypair only (`.dev_signing_key/`, gitignored) - no HSM, no production AT signing key exists | `core/security/package_signing.py`, `tools/sign_model_manifests.py`, `tools/verify_model_manifests.py` |
 | Secure boot / signed firmware verification on-device | not started - needs physical hardware with a boot ROM/secure element; see `firmware/architecture.md` | `firmware/` (design doc) |
 | No-audio-persistence guarantee (privacy) | done, tested (4 tests, incl. real whisper.cpp end-to-end temp-dir diffing and a simulated-crash cleanup path); found and honestly documented two real residual gaps (temp files aren't power-loss-safe, `unlink()` isn't secure erase) rather than claiming a stronger guarantee than what's actually true | `tests/privacy/test_no_audio_persistence.py`, `docs/privacy.md` |
-| Custom PCB, miniaturization, charging case, manufacturing, factory test, battery/thermal engineering | not started - all require physical hardware and lab equipment this environment doesn't have (Phase 22-30) | `hardware/` (skeleton) |
+| Battery + thermal engineering | desk research done, real cited reference data (Timekettle/AirPods Pro 2/Sony WH-1000XM5 battery capacities, IEC 62368-1 touch-temp limits); key finding: no chip evaluated sits in the power/compute band AT needs; no physical hardware to measure real power/thermals | `hardware/battery-thermal-engineering.md` |
+| Custom PCB + earbud miniaturization | requirements documented, no schematic; blocked on Phase 12/22's unresolved SoC selection | `hardware/pcb-and-miniaturization.md` |
+| Charging case | design doc done, real competitor reference (Timekettle case-assisted-runtime model); battery sizing blocked on Phase 22 | `hardware/charging-case.md` |
+| Manufacturing (EVT/DVT/PVT) + automated factory test | process + AT-specific acceptance criteria documented, reusing real Phase 3/8-11/20 tools; not executed, no physical unit exists | `hardware/manufacturing-and-factory-test.md` |
 
 ## Language coverage is a claim, not an assumption
 

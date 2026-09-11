@@ -69,6 +69,18 @@ documents the full data flow and two honestly-stated residual gaps
 (temp-file cleanup isn't power-loss-safe; `unlink()` isn't secure erase) —
 corrections to an earlier, slightly-too-strong claim, not a new problem.
 
+**Phases 22-28: hardware-blocked, honestly researched with real citations.**
+Battery/thermal (`hardware/battery-thermal-engineering.md`), PCB/
+miniaturization (`hardware/pcb-and-miniaturization.md`), charging case
+(`hardware/charging-case.md`), and manufacturing/factory-test
+(`hardware/manufacturing-and-factory-test.md`) are all desk-research design
+documents grounded in real cited data (Timekettle/AirPods Pro 2/Sony
+WH-1000XM5 battery specs, IEC 62368-1 thermal limits, standard EVT/DVT/PVT
+process) rather than fabricated numbers — no production SoC, PCB, or
+physical unit exists yet. The central finding worth knowing: no chip this
+project has evaluated sits in the power/compute band AT's Whisper-class
+workload actually needs.
+
 ## Initial language set
 
 English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali,

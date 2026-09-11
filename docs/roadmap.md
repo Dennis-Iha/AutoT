@@ -27,15 +27,15 @@ to work.
 | 17 | AT Conversation Mode (two-direction translation) | **done - real, tested (extended translation to full bidirectional, 16 pairs)** |
 | 18 | Mobile companion app | **architecture doc only - no mobile SDK/device/emulator in this environment** |
 | 19 | Backend (auth, device registry, model/firmware registry, OTA) | **done - real, tested FastAPI backend** |
-| 20 | Security (secure boot, signed firmware, encrypted comms) | not started |
-| 21 | Privacy controls and documentation | not started |
-| 22 | Battery engineering | not started |
-| 23 | Thermal engineering | not started |
-| 24 | Custom PCB | not started |
-| 25 | Earbud miniaturization | not started |
-| 26 | Charging case | not started |
-| 27 | Manufacturing (EVT/DVT/PVT plans) | not started |
-| 28 | Automated factory test station | not started |
+| 20 | Security (secure boot, signed firmware, encrypted comms) | **model package signing done, real and tested (Ed25519); secure boot/signed firmware need physical hardware - design doc only** |
+| 21 | Privacy controls and documentation | **done - no-audio-persistence proven with tests, full data flow doc** |
+| 22 | Battery engineering | **desk research done (real cited reference data) - no production SoC exists to measure real power against** |
+| 23 | Thermal engineering | **desk research done (real IEC 62368-1 citation) - no enclosure/hardware exists to measure real thermals against** |
+| 24 | Custom PCB | **requirements documented - blocked on Phase 12/22's unresolved SoC selection, no schematic** |
+| 25 | Earbud miniaturization | **requirements documented - the hardest unresolved squeeze (battery+thermal+PCB density all compound)** |
+| 26 | Charging case | **design doc done (real competitor reference: Timekettle) - battery sizing blocked on Phase 22** |
+| 27 | Manufacturing (EVT/DVT/PVT plans) | **process + AT-specific acceptance criteria documented - not executed, no physical unit exists** |
+| 28 | Automated factory test station | **design doc done, reuses real Phase 3/8-11/20 tools - not built, no physical unit exists** |
 | 29 | OTA model update system | not started |
 | 30 | Performance testing across all 9 languages/environments | not started |
 | 31 | Product metrics dashboards | not started |
@@ -554,14 +554,56 @@ telemetry doesn't exist yet) but a constraint to hold when Phase 31 is
 built: transcript content must not be included in whatever telemetry ships
 by default.
 
-## Immediate next step (Phase 22+)
+## Phases 22-28 results summary: hardware-blocked, honestly researched
 
-Phases 22-30 (battery, thermal, PCB, miniaturization, manufacturing, factory
-test, performance testing) need physical hardware and lab equipment this
-environment doesn't have - continue the same honest pattern: real, tested
-work where the environment allows it (e.g. Phase 29's OTA model update
-system extends Phase 10/19's real registries and backend; some of Phase 30's
-performance testing can run against the existing synthesized/real fixtures),
-clearly-labeled design documents where it doesn't (battery/thermal/PCB/
-manufacturing/factory test genuinely need hardware), never simulated as
-tested.
+All seven phases produced desk-research design documents, not physical
+engineering - no production SoC, enclosure, PCB, or manufactured unit
+exists in this environment, and Phase 12's SoC selection is still pending
+physical validation, which blocks everything downstream of it (Phase 24's
+PCB, Phase 25's miniaturization, Phase 27/28's manufacturing/factory test
+all explicitly depend on a committed BOM that doesn't exist yet). Rather
+than invent numbers, each document cites real, sourced reference data:
+
+- `hardware/battery-thermal-engineering.md` (Phases 22-23): real cited
+  battery capacities for comparable products (Sony WH-1000XM5, AirPods
+  Pro 2, and directly-relevant competitor **Timekettle M3/W4 translator
+  earbuds** - same product category as AT), a real IEC 62368-1 touch-
+  temperature citation (43-48°C), and the central finding: no chip this
+  project has evaluated sits in the power/compute band AT's Whisper-class
+  workload needs (MCU-class parts like Ambiq's Apollo4 Blue Plus are
+  power-friendly but cannot run the workload; Jetson-class parts can run
+  it but would drain a WH-1000XM5-sized battery in under 40 minutes).
+  Also defines the battery-life estimation formula to apply once real
+  target-silicon power numbers exist.
+- `hardware/pcb-and-miniaturization.md` (Phases 24-25): requirements
+  derived from this project's own earlier phases (flash/RAM sizing from
+  Phase 5-11's real measurements, mic count from Phase 3, BT need from
+  Phase 12), plus the honest observation that earbud miniaturization
+  compounds every open constraint (battery, thermal, PCB density) rather
+  than solving any of them.
+- `hardware/charging-case.md` (Phase 26): grounded in Timekettle's
+  case-assisted-runtime model (25h with case vs. 7.5h earbud-only) as the
+  right design pattern to plan around, given AT's per-utterance compute
+  cost is likely higher energy than a lighter-weight competitor's workload.
+- `hardware/manufacturing-and-factory-test.md` (Phases 27-28): standard
+  EVT/DVT/PVT process (cited), with AT-specific acceptance criteria that
+  reuse this project's own already-built, already-tested tools
+  (`offline_runtime.py`'s readiness check, Phase 20's signature
+  verification, Phase 8's pipeline) rather than inventing generic
+  factory-test logic.
+
+## Immediate next step (Phase 29+)
+
+Phase 29 (OTA model update system) is real software work: it extends
+Phase 10's model registries/checksums, Phase 19's backend firmware/OTA
+endpoints, and Phase 20's signature verification into an actual client-side
+update flow (download -> verify -> atomic swap), buildable and testable
+without physical hardware since it's exercising the same registries/backend
+already proven real. Phase 30 (performance testing across all 9 languages)
+also has a real software-buildable core: running this project's existing
+per-language benchmark tools (`tools/asr_benchmark.py`,
+`tools/translation_benchmark.py`, `tools/tts_benchmark.py`,
+`tools/language_id_benchmark.py`) as one consolidated sweep and reporting
+honest pass/fail per language - "across all... environments" (real-world
+noise, device variance) stays an open gap requiring physical hardware,
+flagged rather than quietly dropped.
