@@ -92,6 +92,18 @@ Phase 7 hit for real (a truncated download treated as complete). A new
 `tools/ota_download_and_apply.py` client close the loop end to end,
 smoke-tested against a live server on this workstation.
 
+**Phase 30: full-pipeline performance sweep across all 9 languages, real
+and measured.** `tools/performance_sweep.py` runs the real end-to-end
+pipeline (not isolated per-stage benchmarks) on all 9 v1 languages and
+found something more serious than Phase 8's original LID-accuracy gap: raw
+pipeline-status pass rate is 5/9, but the genuinely-correct rate is only
+**2/9** (en, es) — 3 languages (Bengali, Hindi, Mandarin) were confidently
+misdetected as English (confidence ≥ the pipeline's 0.5 threshold) and
+produced fluent-sounding garbage instead of a real translation, silently
+bypassing the LOW_CONFIDENCE safeguard that protects every other
+misdetection case. See `docs/roadmap.md`'s Phase 30 section for the full
+per-language table and the follow-up this surfaces.
+
 ## Initial language set
 
 English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali,

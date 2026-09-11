@@ -37,7 +37,7 @@ to work.
 | 27 | Manufacturing (EVT/DVT/PVT plans) | **process + AT-specific acceptance criteria documented - not executed, no physical unit exists** |
 | 28 | Automated factory test station | **design doc done, reuses real Phase 3/8-11/20 tools - not built, no physical unit exists** |
 | 29 | OTA model update system | **done - real, tested verify+atomic-install pipeline plus a real backend download endpoint closing the loop** |
-| 30 | Performance testing across all 9 languages/environments | not started |
+| 30 | Performance testing across all 9 languages/environments | **done (languages) - real sweep found genuinely-correct rate is only 2/9, with a new, more serious LID-misdetection finding; environments not testable, no physical hardware** |
 | 31 | Product metrics dashboards | not started |
 | 32 | Commercial product architecture | not started |
 | 33 | Full documentation set | in progress (this file + architecture.md) |
@@ -637,12 +637,65 @@ limitation (they stage into `tmp_path`, a separate location from the live
 registry), so the actual verify+install logic is still genuinely,
 fully tested end to end.
 
-## Immediate next step (Phase 30+)
+## Phase 30 results summary: performance testing across all 9 languages
 
-Phase 30 (performance testing across all 9 languages) has a real
-software-buildable core: running this project's existing per-language
-benchmark tools (`tools/asr_benchmark.py`, `tools/translation_benchmark.py`,
-`tools/tts_benchmark.py`, `tools/language_id_benchmark.py`) as one
-consolidated sweep and reporting honest pass/fail per language - "across
-all... environments" (real-world noise, device variance) stays an open gap
-requiring physical hardware, flagged rather than quietly dropped.
+`tools/performance_sweep.py` runs the REAL full pipeline (LID->ASR->
+translation->TTS) across all 9 v1 languages against the same synthesized
+speech fixtures every other benchmark in this project uses - not isolated
+per-stage numbers (those already exist: `tools/asr_benchmark.py`,
+`tools/translation_benchmark.py`, `tools/tts_benchmark.py`,
+`tools/language_id_benchmark.py`), but the number that actually matters:
+does a language produce a working end-to-end translation TODAY.
+
+Real measured result (`ggml-base.bin`, es/en still the only two languages
+this pipeline reliably works for, unchanged from Phase 8's original
+finding):
+
+| Language | Status | Detected as | LID conf | Output |
+|---|---|---|---|---|
+| en | ok | en | 0.91 | "Where is the train station?" (correct passthrough) |
+| es | ok | es | 0.94 | "Where's the plan station?" (correct translation) |
+| ar | low_confidence | en | 0.17 | none (safeguard worked) |
+| fr | low_confidence | zh | 0.27 | none (safeguard worked) |
+| pt | low_confidence | de | 0.17 | none (safeguard worked) |
+| ru | low_confidence | en | 0.49 | none (safeguard worked) |
+| bn | **ok (SUSPECT)** | en | 0.55 | "rail station, go tight." (garbage, not Bengali) |
+| hi | **ok (SUSPECT)** | en | 0.59 | "Realme station, Kaha." (garbage, not Hindi) |
+| zh | **ok (SUSPECT)** | en | 0.51 | "Watcher, Chan, Cai, Ali." (garbage, not Chinese) |
+
+Raw pipeline-status pass rate: 5/9 (56%). But building this sweep's report
+and actually reading what those 5 "ok" rows contained surfaced a real,
+more serious finding than the raw number suggests, not just a restatement
+of Phase 8's known LID accuracy gap: **LID can be confidently wrong in a
+way that is worse than a low-confidence failure.** When whisper.cpp's LID
+misdetects a non-English utterance AS English with confidence >= the
+pipeline's 0.5 threshold (bn: 0.55, hi: 0.59, zh: 0.51), `source_language
+== target_language` becomes true, translation is skipped entirely by
+design (correct behavior for genuinely English input), and whatever
+whisper.cpp's English-forced decode hallucinates from foreign-language
+audio gets spoken back as if it were a legitimate response - a fluent-
+sounding but meaningless English sentence, not a visible failure like
+LOW_CONFIDENCE produces for ar/fr/pt/ru. The genuinely-correct rate,
+excluding these 3 suspect rows, is **2/9 (22%)** - `tools/performance_sweep.py`
+now computes and prints both numbers plus a per-row `suspect_misdetected_as_target`
+flag, specifically so this gap can't be missed in a future re-run the way
+it would have been by trusting the raw "ok" count alone.
+
+This is a real, actionable follow-up (not resolved here, scope-honestly
+deferred): the 0.5 confidence threshold that Phase 8 already flagged as
+producing "confidently-wrong answers" needs to be either raised, or
+supplemented with a same-language sanity check (e.g. cross-checking against
+a second signal) specifically for the case where detected-language equals
+target-language, since that specific case currently has NO safety net at
+all once LID clears 0.5 - the LOW_CONFIDENCE fallback that protects every
+other detected language does not apply here by construction.
+
+"...across all 9 languages/environments" per the master spec: this sweep
+covers the LANGUAGES half for real, with a genuine, if disappointing,
+number attached. The ENVIRONMENTS half (background noise, different
+microphones/rooms, real device conditions) is NOT covered - no real-
+environment recordings or physical hardware exist in this development
+environment to test against, an open gap flagged here rather than silently
+dropped, same as every other hardware-blocked phase in this project.
+
+## Immediate next step (Phase 31+)
