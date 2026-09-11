@@ -17,3 +17,9 @@ vad:
   min_speech_ms: 200          # ignore blips shorter than this
   hangover_ms: 300            # trailing silence required to close a segment
   max_segment_ms: 20000       # force-close very long segments
+
+asr:
+  engine: whisper_cpp
+  binary_path: third_party/whisper.cpp/build/bin/whisper-cli   # tools/setup_whisper_cpp.sh builds this
+  model_path: models/asr/whisper/ggml-base.bin                  # multilingual (NOT .en) - covers all 9 v1 languages
+  threads: 4

@@ -1,0 +1,14 @@
+{
+  "_provenance": "Synthesized locally with espeak-ng 1.53.0 (built from source, MPL-licensed), NOT natural human speech. This is a real, reproducible, offline-generated test corpus for exercising language ID / ASR / MT / TTS integration and catching gross regressions - it is not a substitute for human-speech accuracy validation, which is a documented gap deferred to Phase 30 (dedicated multi-environment performance testing) until real recordings or a licensed speech corpus are available. All 9 clips say the same sentence ('Where is the train station?') so language-identification confusion and translation consistency can be checked across languages using one controlled utterance.",
+  "sample_rate_hz": 16000,
+  "channels": 1,
+  "en": { "text": "Where is the train station", "espeak_voice": "en-us" },
+  "es": { "text": "¿Dónde está la estación de tren?", "espeak_voice": "es" },
+  "fr": { "text": "Où est la gare", "espeak_voice": "fr-fr" },
+  "pt": { "text": "Onde fica a estação de trem", "espeak_voice": "pt-pt" },
+  "ru": { "text": "Где находится вокзал", "espeak_voice": "ru" },
+  "ar": { "text": "أين محطة القطار", "espeak_voice": "ar" },
+  "hi": { "text": "रेलवे स्टेशन कहाँ है", "espeak_voice": "hi" },
+  "bn": { "text": "রেল স্টেশন কোথায়", "espeak_voice": "bn" },
+  "zh": { "text": "火车站在哪里", "espeak_voice": "cmn" }
+}

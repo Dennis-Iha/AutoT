@@ -27,8 +27,17 @@ def test_contains():
 
 
 def test_no_language_is_falsely_claimed_production_ready():
-    # Phase 0/1 has no ASR/MT/TTS integrated yet; nothing should claim to be
-    # further along than "initial" until later phases actually benchmark it.
+    # TTS (Phase 7) hasn't landed yet, so nothing should claim "production"
+    # (which requires ASR+translation+TTS all benchmarked) until it does.
     reg = LanguageRegistry.load()
     assert reg.with_status("production") == []
-    assert all(lang.status == "initial" for lang in reg)
+
+
+def test_status_reflects_actually_tested_phases():
+    # As of Phase 6: ASR+LID tested for all 9 (en is the ASR/LID target,
+    # not yet a translation source); translation tested for the 8 non-
+    # English source languages (see tools/translation_benchmark.py).
+    reg = LanguageRegistry.load()
+    assert reg.get("en").status == "asr_ready"
+    for code in EXPECTED_V1_LANGUAGES - {"en"}:
+        assert reg.get(code).status == "translation_ready", code

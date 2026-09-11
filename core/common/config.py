@@ -75,11 +75,20 @@ class VADConfig:
 
 
 @dataclass
+class ASRConfig:
+    engine: str = "whisper_cpp"
+    binary_path: str = "third_party/whisper.cpp/build/bin/whisper-cli"
+    model_path: str = "models/asr/whisper/ggml-base.bin"
+    threads: int = 4
+
+
+@dataclass
 class AppConfig:
     log_level: str = "INFO"
     json_logs: bool = False
     audio: AudioConfig = field(default_factory=AudioConfig)
     vad: VADConfig = field(default_factory=VADConfig)
+    asr: ASRConfig = field(default_factory=ASRConfig)
 
 
 def _build_dataclass(cls: type, data: dict[str, Any]) -> Any:

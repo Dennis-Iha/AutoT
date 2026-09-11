@@ -11,11 +11,15 @@ htmlcov/
 build/
 dist/
 tools/cpp_env_check/build/
+third_party/
 *.wav
-!tests/**/fixtures/*.wav
+!tests/fixtures/**/*.wav
 models/**/*.bin
 models/**/*.onnx
 models/**/*.gguf
 models/**/*.pt
+models/**/*.model
+models/asr/whisper/
+models/translation/argos/
 *.log
 .DS_Store

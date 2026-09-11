@@ -11,9 +11,9 @@ to work.
 | 1 | Audio engine (mic capture, ring buffer, WAV I/O, diagnostics) | **done** |
 | 2 | Voice activity detection (streaming VAD, speech segmenter) | **done** |
 | 3 | Audio cleanup (noise suppression, echo cancellation, dereverberation, beamforming) | **done** |
-| 4 | Language identification | not started |
-| 5 | ASR (offline multilingual speech recognition) | not started |
-| 6 | Translation engine | not started |
+| 4 | Language identification | **done** |
+| 5 | ASR (offline multilingual speech recognition) | **done** |
+| 6 | Translation engine | **done** |
 | 7 | Text-to-speech | not started |
 | 8 | Complete software pipeline (`at-translate` CLI) | not started |
 | 9 | Real-time streaming + latency benchmarking | not started |
@@ -69,11 +69,57 @@ trade away real speech retention, which is the wrong tradeoff. Revisit VAD
 noise-robustness with either a better VAD (e.g. a neural VAD) or the
 segmenter's existing onset-ratio hysteresis, not by over-suppressing.
 
-## Immediate next step (Phase 4)
+## Phase 4/5 results summary: language ID + ASR (whisper.cpp)
 
-Implement automatic language identification for the initial nine languages
-(en/zh/hi/es/ar/fr/bn/pt/ru), returning `{language, confidence, timestamp}`
-and an explicit low-confidence fallback path (per the master spec: "Do not
-immediately translate if confidence is too low"). Follow the same pattern:
-`base.py` ABC first, then a concrete backend, benchmarked per-language
-rather than assumed to work uniformly.
+Built `third_party/whisper.cpp` from source (`tools/setup_whisper_cpp.sh`,
+gitignored - vendored, not repo source) and wrapped its CLI via subprocess
+in `core/asr/whisper_cpp_runner.py`, verified against whisper.cpp's own
+source (not guessed): `-dl` runs the encoder-only language-detection path
+and exits before decoding; `-oj -l auto` gives full transcription + detected
+language as JSON. `core/language_id/whisper_lid.py` and
+`core/asr/whisper_cpp_asr.py` both wrap this one runner, since a Whisper
+model computes LID and ASR from the same encoder pass - not two models.
+
+To get real per-language test audio without a natural-speech corpus,
+`tests/fixtures/speech/` was generated with espeak-ng (built from source, no
+sudo needed - CMake-based build) for all 9 v1 languages, one controlled
+sentence ("Where is the train station?") per language - documented as
+synthesized, not natural, speech in the fixture manifest.
+
+Measured (tiny/base multilingual models, `tools/asr_benchmark.py` /
+`tools/language_id_benchmark.py`):
+- English fixture: exact-match transcription, LID confidence ~0.93.
+- All 9 languages: valid LID/ASR output shape, tested end-to-end.
+- **Base model is far from real-time on this CPU**: up to ~90s to
+  transcribe a ~2s clip for some languages with `-l auto`. This workstation
+  proves correctness, not embedded feasibility - exactly why Phase 11
+  (quantization) and Phase 12 (embedded/NPU hardware) exist.
+
+## Phase 6 results summary: translation (CTranslate2)
+
+Used `.argosmodel` packages from the Argos Translate open model index
+directly via lightweight `ctranslate2` + tokenizer libraries
+(`tools/setup_translation_models.sh`), NOT the `argostranslate` Python
+package itself - it transitively requires PyTorch (via `stanza`, used only
+for paragraph->sentence splitting, which AT doesn't need since VAD already
+segments utterances). Verified two different tokenizer schemes are in use
+across package versions (not assumed uniform): most languages ship
+SentencePiece; Spanish's package uses the older subword-nmt BPE format with
+Moses tokenization - `core/translation/ctranslate2_translator.py` auto-
+detects and handles both.
+
+All 8 non-English v1 languages translate correctly to English (`tools/
+translation_benchmark.py`): 270ms-1.2s warm latency, 82-315MB per model.
+Caught and fixed a real bug during development: `sentencepiece`
+0.2.2's `decode()` on a list of piece-strings inconsistently dropped only
+*some* word-boundary markers; switched to the standard manual
+concatenate-then-replace-marker detokenization, verified correct across all
+7 SentencePiece-based languages (regression-tested in
+`tests/translation/test_ctranslate2_translator.py`).
+
+## Immediate next step (Phase 7)
+
+Implement offline English text-to-speech. Same pattern: `base.py` ABC
+(`synthesize()`, `synthesize_stream()`) first, then a concrete backend.
+Candidate: Piper (ONNX-based, no PyTorch, small per-voice models) - verify
+this before committing, per Engineering Principle #1.

@@ -46,11 +46,11 @@ Noise suppression         <-- IMPLEMENTED (Phase 3): core/denoise (spectral subt
    |
 Voice Activity Detection  <-- IMPLEMENTED (Phase 1/2): core/vad
    |
-Language Identification   (Phase 4 - not yet implemented)
+Language Identification   <-- IMPLEMENTED (Phase 4): core/language_id (whisper.cpp encoder)
    |
-Speech Recognition        (Phase 5 - not yet implemented)
+Speech Recognition        <-- IMPLEMENTED (Phase 5): core/asr (whisper.cpp)
    |
-Translation                (Phase 6 - not yet implemented)
+Translation                <-- IMPLEMENTED (Phase 6): core/translation (CTranslate2, 8 languages -> en)
    |
 English Text
    |
@@ -64,7 +64,9 @@ Speaker
 Everything left of "IMPLEMENTED" above only claims to be an interface or a
 plan, not working code. See `docs/roadmap.md` for what phase each stage
 belongs to, and never report a stage as working without an automated test
-proving it (Engineering Principle #1).
+proving it (Engineering Principle #1). Note these stages are not yet wired
+together into one pipeline (that's Phase 8) - each is independently tested
+today, e.g. via `tools/asr_benchmark.py` and `tools/translation_benchmark.py`.
 
 ## Current implementation status (as of Phase 0-3)
 
@@ -87,9 +89,9 @@ proving it (Engineering Principle #1).
 | Echo cancellation (NLMS) | done, tested; measured ~29dB ERLE on a stationary synthetic echo path; no double-talk protection yet | `core/denoise/echo_cancellation.py` |
 | Dereverberation (spectral tail subtraction) | done, tested; measured ~10dB reverberant-tail reduction; single-channel simplified technique, NOT full WPE | `core/denoise/dereverberation.py` |
 | Beamforming (delay-and-sum + TDOA estimation) | done, tested; measured ~8.5dB SNR gain from correct alignment vs naive averaging; synthetic 2-channel signals only, no real mic array | `core/beamforming/delay_sum.py` |
-| Language ID | not started (Phase 4) | `core/language_id/` (empty) |
-| ASR | not started (Phase 5) | `core/asr/` (empty) |
-| Translation | not started (Phase 6) | `core/translation/` (empty) |
+| Language ID (whisper.cpp encoder, 9 languages) | done, tested on real (synthesized) speech per language; see `tools/language_id_benchmark.py` | `core/language_id/whisper_lid.py` |
+| ASR (whisper.cpp, tiny/base multilingual) | done, tested on real speech, exact-match transcription on English fixture; base model far from real-time on this CPU (up to ~90s for a 2s clip) - see `tools/asr_benchmark.py` | `core/asr/whisper_cpp_asr.py` |
+| Translation (CTranslate2, 8 source languages -> en) | done, tested; 270ms-1.2s warm latency, correct output for all 8; Spanish uniquely needs a BPE+Moses tokenizer (not SentencePiece) - see `tools/translation_benchmark.py` | `core/translation/ctranslate2_translator.py` |
 | TTS | not started (Phase 7) | `core/tts/` (empty) |
 | Streaming orchestration / full CLI pipeline | not started (Phase 8/9) | `core/streaming/`, `core/orchestration/` (empty) |
 | Everything hardware/firmware/backend/mobile | not started (Phase 12+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |

@@ -1,0 +1,77 @@
+{
+  "_provenance": "CTranslate2 models sourced from the Argos Translate open model index (https://github.com/argosopentech/argospm-index), fetched via tools/setup_translation_models.sh. Not trained or fine-tuned by AT. Accuracy is whatever the upstream Argos/OPUS-MT models provide - see tools/translation_benchmark.py for measured BLEU/quality on the espeak-ng speech fixtures, not an assumption.",
+  "models": [
+    {
+      "model_id": "argos-ar-en-1.0",
+      "source": "ar",
+      "target": "en",
+      "version": "1.0",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/ar_en",
+      "tokenizer_model": "models/translation/argos/ar_en/sentencepiece.model"
+    },
+    {
+      "model_id": "argos-bn-en-1.9",
+      "source": "bn",
+      "target": "en",
+      "version": "1.9",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/bn_en",
+      "tokenizer_model": "models/translation/argos/bn_en/sentencepiece.model"
+    },
+    {
+      "model_id": "argos-zh-en-1.9",
+      "source": "zh",
+      "target": "en",
+      "version": "1.9",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/zh_en",
+      "tokenizer_model": "models/translation/argos/zh_en/sentencepiece.model"
+    },
+    {
+      "model_id": "argos-fr-en-1.9",
+      "source": "fr",
+      "target": "en",
+      "version": "1.9",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/fr_en",
+      "tokenizer_model": "models/translation/argos/fr_en/sentencepiece.model"
+    },
+    {
+      "model_id": "argos-hi-en-1.1",
+      "source": "hi",
+      "target": "en",
+      "version": "1.1",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/hi_en",
+      "tokenizer_model": "models/translation/argos/hi_en/sentencepiece.model"
+    },
+    {
+      "model_id": "argos-pt-en-1.9",
+      "source": "pt",
+      "target": "en",
+      "version": "1.9",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/pt_en",
+      "tokenizer_model": "models/translation/argos/pt_en/sentencepiece.model"
+    },
+    {
+      "model_id": "argos-ru-en-1.9",
+      "source": "ru",
+      "target": "en",
+      "version": "1.9",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/ru_en",
+      "tokenizer_model": "models/translation/argos/ru_en/sentencepiece.model"
+    },
+    {
+      "model_id": "argos-es-en-1.9",
+      "source": "es",
+      "target": "en",
+      "version": "1.9",
+      "engine": "ctranslate2",
+      "model_dir": "models/translation/argos/es_en",
+      "tokenizer_model": "models/translation/argos/es_en/bpe.model"
+    }
+  ]
+}

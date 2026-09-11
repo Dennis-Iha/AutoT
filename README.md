@@ -17,8 +17,12 @@ See `docs/architecture.md` for the full layered architecture and
 
 ## Status
 
-**Phase 0/1 in progress**: project foundation, audio capture, and voice
-activity detection (VAD) — running on a Linux workstation, no ASR/MT/TTS yet.
+**Phases 0-6 done**: project foundation, audio capture, VAD, audio cleanup
+(denoise/echo-cancel/dereverb/beamforming), language ID, ASR (whisper.cpp),
+and translation (CTranslate2) — all running and tested on a Linux
+workstation. TTS (Phase 7) and wiring these into one live pipeline (Phase 8)
+are next. See `docs/architecture.md`'s status table for exactly what's
+tested vs. still a stub.
 
 ## Initial language set
 
@@ -36,13 +40,25 @@ extensions), and a working ALSA/PortAudio input device.
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e ".[dev]"
-pytest
+pytest   # ASR/LID/translation tests skip gracefully until the two setup scripts below are run
 ```
 
 Run the microphone → VAD → speech-segment demo:
 
 ```bash
 python -m tools.mic_vad_demo --duration 10 --out-dir /tmp/at_segments
+```
+
+ASR/language-ID and translation need two one-time setup scripts (build
+whisper.cpp from source, ~150MB of ggml models; download ~1GB of CTranslate2
+translation models) before their tests run for real instead of skipping:
+
+```bash
+tools/setup_whisper_cpp.sh          # -> third_party/whisper.cpp, models/asr/whisper/
+tools/setup_translation_models.sh   # -> models/translation/argos/
+python -m tools.asr_benchmark            # per-language WER/CER/latency
+python -m tools.language_id_benchmark    # per-language LID accuracy
+python -m tools.translation_benchmark    # per-language-pair latency + output
 ```
 
 ## Repository layout

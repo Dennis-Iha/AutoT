@@ -1,11 +1,11 @@
 {
-  "en": { "name": "English", "status": "initial" },
-  "zh": { "name": "Mandarin Chinese", "status": "initial" },
-  "hi": { "name": "Hindi", "status": "initial" },
-  "es": { "name": "Spanish", "status": "initial" },
-  "ar": { "name": "Arabic", "status": "initial" },
-  "fr": { "name": "French", "status": "initial" },
-  "bn": { "name": "Bengali", "status": "initial" },
-  "pt": { "name": "Portuguese", "status": "initial" },
-  "ru": { "name": "Russian", "status": "initial" }
+  "en": { "name": "English", "status": "asr_ready" },
+  "zh": { "name": "Mandarin Chinese", "status": "translation_ready" },
+  "hi": { "name": "Hindi", "status": "translation_ready" },
+  "es": { "name": "Spanish", "status": "translation_ready" },
+  "ar": { "name": "Arabic", "status": "translation_ready" },
+  "fr": { "name": "French", "status": "translation_ready" },
+  "bn": { "name": "Bengali", "status": "translation_ready" },
+  "pt": { "name": "Portuguese", "status": "translation_ready" },
+  "ru": { "name": "Russian", "status": "translation_ready" }
 }
