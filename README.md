@@ -59,6 +59,16 @@ AT signing key exists). Secure boot / signed firmware verification is still
 a design document (`firmware/architecture.md`) — it needs physical hardware
 this environment doesn't have.
 
+**Phase 21: privacy, real and tested.** `tests/privacy/test_no_audio_persistence.py`
+(4 tests) proves the no-audio-persistence claim rather than just asserting
+it — and testing it surfaced a real nuance: the pipeline itself never
+touches a file, but its whisper.cpp-backed ASR/LID stage briefly writes raw
+audio to a temp file (whisper.cpp's CLI needs a real file path) before
+deleting it, including on a simulated crash path. `docs/privacy.md`
+documents the full data flow and two honestly-stated residual gaps
+(temp-file cleanup isn't power-loss-safe; `unlink()` isn't secure erase) —
+corrections to an earlier, slightly-too-strong claim, not a new problem.
+
 ## Initial language set
 
 English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali,

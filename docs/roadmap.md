@@ -521,19 +521,47 @@ a boot ROM / secure element before a device runs untrusted code) is
 explicitly NOT built - it needs physical hardware this environment doesn't
 have. `firmware/architecture.md` remains a design document for that piece.
 
-## Immediate next step (Phase 21+)
+## Phase 21 results summary: privacy (no-audio-persistence, data flow doc)
 
-Phase 21 (privacy) has a real software-only component: verifiable
-no-audio-persistence behavior. `core/orchestration/pipeline.py` never writes
-raw audio to disk by construction (it operates on in-memory numpy arrays and
-only ever writes to disk when the CLI's `--output` flag is explicitly given
-an output WAV path) - this is currently true but only *asserted*, not
-*tested*. Phase 21 should add an explicit automated test that proves it
-(e.g. monitor the filesystem / mock `open`/`soundfile.write` during a full
-pipeline run and assert no audio bytes are written unless the caller opted
-in), plus a data flow / retention / telemetry policy document. Phases 22-30
-(battery, thermal, PCB, miniaturization, manufacturing, factory test,
-performance testing) need physical hardware this environment doesn't have -
-continue the same honest pattern: real, tested work where the environment
-allows it, clearly-labeled design documents where it doesn't, never
-simulated as tested.
+Set out to test the "no-audio-persistence" claim, and testing it surfaced a
+real nuance that the earlier phrasing ("pipeline never writes raw audio to
+disk") glossed over: `TranslationPipeline.process()` itself never touches a
+file, but the ASR/LID stage underneath it (`core/asr/whisper_cpp_runner.py`)
+*does* briefly write raw audio to a temp WAV file, twice per utterance,
+because whisper.cpp's CLI requires a real file path - there is no in-memory
+API in the mode this project uses. The file is deleted in a `finally` block
+right after each call. The original claim wasn't false, but it was imprecise
+about where the real guarantee lives (deletion-after-write, not
+never-written) - corrected here rather than left as stated.
+
+`tests/privacy/test_no_audio_persistence.py` (4 tests, all passing) proves
+this holds: cleanup survives a simulated subprocess crash (fake-based, no
+whisper.cpp needed), cleanup after real `detect_language`/`transcribe` calls
+(diffing the system temp directory before/after), and - the strongest
+version - the complete LID->ASR->translation->TTS pipeline run on real
+recorded speech leaves the temp directory byte-for-byte unchanged.
+
+`docs/privacy.md` documents the full data flow (confirmed zero network
+imports anywhere in `core/` - all inference is local), and states two real
+residual gaps honestly instead of overclaiming: temp-file cleanup is not
+power-loss-safe (a `SIGKILL` or battery pull mid-call would leave a file
+until the temp dir is next cleared - flagged as an open item for Phase 13+'s
+embedded OS work, which should mount that directory `tmpfs`), and
+`unlink()` is not a secure erase on flash storage. It also flags that
+`tools/at_translate.py` currently logs recognized/translated TEXT (not just
+metadata) to stderr - harmless today (nothing ships logs anywhere; Phase 31
+telemetry doesn't exist yet) but a constraint to hold when Phase 31 is
+built: transcript content must not be included in whatever telemetry ships
+by default.
+
+## Immediate next step (Phase 22+)
+
+Phases 22-30 (battery, thermal, PCB, miniaturization, manufacturing, factory
+test, performance testing) need physical hardware and lab equipment this
+environment doesn't have - continue the same honest pattern: real, tested
+work where the environment allows it (e.g. Phase 29's OTA model update
+system extends Phase 10/19's real registries and backend; some of Phase 30's
+performance testing can run against the existing synthesized/real fixtures),
+clearly-labeled design documents where it doesn't (battery/thermal/PCB/
+manufacturing/factory test genuinely need hardware), never simulated as
+tested.
