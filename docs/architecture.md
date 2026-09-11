@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-10)
+## Current implementation status (as of Phase 0-11)
 
 | Component | Status | Where |
 |---|---|---|
@@ -102,6 +102,7 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Latency benchmark (capture/VAD/LID/ASR/translation/TTS/playback/total) | done; measured ~38-44s total per utterance on this CPU (base model), dominated by LID+ASR encoder passes - not a threading/streaming-fixable cost, see Phase 11/12 | `tools/latency_benchmark.py` |
 | Model manifest + checksum verification (ASR/translation/TTS, uniform) | done, tested; every registry entry carries a real computed SHA256, `is_ready()` (fast) vs `is_valid()` (full checksum) both covered - would have caught two real incidents already hit in this project (Phase 6/7) immediately instead of a confusing deep failure | `core/common/model_manifest.py`, `core/asr/model_registry.py` |
 | Offline readiness check (aggregates all 3 registries + whisper.cpp binary) | done, tested; verified for real - all 11 checks pass in ~15s with full checksums | `core/common/offline_runtime.py`, `tools/check_offline_readiness.py` |
+| ASR quantization benchmark (q4_0/q5_0/q8_0 vs f16) | done; real measured finding: q8_0 is fastest (6.4s avg, 3.2x speedup) despite NOT being the smallest file - quantization level and speed are not monotonically related on this CPU; WER/CER essentially unaffected by quantization. Power not measured (no root RAPL/perf access) - see docs/roadmap.md's Phase 11 section | `tools/quantize_asr_models.sh`, `tools/quantization_benchmark.py` |
 | Everything hardware/firmware/backend/mobile | not started (Phase 12+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
 
 ## Language coverage is a claim, not an assumption

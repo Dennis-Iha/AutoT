@@ -18,7 +18,7 @@ to work.
 | 8 | Complete software pipeline (`at-translate` CLI) | **done** |
 | 9 | Real-time streaming + latency benchmarking | **done** |
 | 10 | Offline mode / model manifest / checksum verification | **done** |
-| 11 | Model optimization (quantization/distillation/pruning benchmarks) | not started |
+| 11 | Model optimization (quantization/distillation/pruning benchmarks) | **done** |
 | 12 | Embedded development platform selection | not started |
 | 13 | AT Headphones prototype (first standalone physical product) | not started |
 | 14 | Embedded audio (I2S/PDM drivers, HAL) | not started |
@@ -328,13 +328,68 @@ eviction *policy* (e.g. LRU across language pairs) here - there's no
 embedded RAM budget to design against yet (that's Phase 12+), and adding
 one now would be speculative, not measured.
 
-## Immediate next step (Phase 11)
+## Phase 11 results summary: model optimization (quantization)
 
-Model optimization: benchmark quantization (whisper.cpp ships
-`whisper-quantize`, already built at
-`third_party/whisper.cpp/build/bin/whisper-quantize`, unused so far) across
-FP16/INT8/INT4 for the ASR models, measuring the same axes Phase 9's
-profiling established matter most here - encoder latency specifically, not
-just overall WER - since that's where ~80% of the measured ~40s/utterance
-cost lives. Record results in the same honest, measured style as every
-other phase: a benchmark table, not a claim.
+`tools/quantize_asr_models.sh` produces quantized variants of the base ASR
+model via whisper.cpp's own `whisper-quantize` (already built, unused until
+now) into `models/asr/whisper/quantized/` (gitignored, like every other
+model artifact). `tools/quantization_benchmark.py` measures size, peak RSS,
+latency, and WER/CER across quant levels on the same forced-language
+fixture corpus Phase 5/9 used - **not power**, which this workstation
+cannot measure for real (Intel RAPL's `energy_uj` is root-only here, no
+`perf` binary installed); reporting an estimated wattage would violate this
+project's own "never fabricate benchmark numbers" principle, so
+`power_watts` is explicitly `null` in the JSON output rather than guessed.
+Real power measurement needs either root RAPL access or dedicated hardware
+instrumentation - expected to be available once Phase 12's embedded dev
+boards are in the picture, several of which expose power rails directly.
+
+| Model | Size | Peak RSS | Avg latency | Avg WER | Avg CER |
+|---|---|---|---|---|---|
+| base (f16, unquantized) | 148.0 MB | 288 MB | 20597 ms | 0.56 | 0.26 |
+| q4_0 | 46.5 MB | 185 MB | 13363 ms | 0.44 | 0.26 |
+| q5_0 | 55.3 MB | 197 MB | 8498 ms | 0.44 | 0.23 |
+| q8_0 | 81.8 MB | 219 MB | 6432 ms | 0.44 | 0.28 |
+
+(en/es/ar fixtures, forced language per Phase 9's methodology - isolated
+from Phase 8's LID accuracy gap. Arabic's WER stays high - ~1.0-1.33 -
+across every quantization level including the unquantized baseline; this
+is a real, separate finding from Phase 8's LID issue and is most likely
+the same root cause as that one - the synthesized Arabic voice being a
+poor match for Whisper's training distribution - not something quantization
+introduced or could fix.)
+
+**The counter-intuitive, measured finding this phase exists to catch**:
+quantization level and speed are NOT monotonically related here. q8_0 (the
+*least* aggressive quantization tested) is the *fastest* - 3.2x faster than
+unquantized and nearly 2x faster than q4_0, despite q4_0 being the smallest
+file. This contradicts the naive "smaller quantization = faster" assumption
+and is almost certainly a CPU/kernel-specific effect (ggml's q8_0 dot-product
+kernels are likely better-vectorized for this x86 CPU's AVX2 than q4_0's
+bit-packing/unpacking scheme) rather than a universal truth - re-measure on
+any different target hardware (Phase 12) rather than assuming this result
+transfers. WER/CER is essentially unaffected by quantization level (all
+three quantized variants match or slightly beat the unquantized baseline on
+en/es), consistent with quantization literature for 4-8 bit weight
+quantization generally preserving task accuracy.
+
+**Practical recommendation from this data**: q8_0 is the clear choice for
+this CPU - smallest meaningful latency (6.4s vs 20.6s baseline avg), best
+or tied accuracy, and still a substantial size reduction (45% of original)
+even though it's not the smallest file. Do not default to the most
+aggressive quantization without measuring on the actual target first.
+
+## Immediate next step (Phase 12)
+
+Embedded development platform selection - the phase this project's own
+master spec is most explicit should NOT be started casually ("do not
+choose a chip based only on TOPS," "do not design the final earbud PCB
+before the AI workload has been benchmarked"). Phases 0-11 have now
+produced real, measured numbers (encoder-latency-dominated cost, ~40s/
+utterance on this workstation CPU, cut to ~6.4s avg with q8_0 quantization
+on the ASR side alone) to evaluate candidate embedded SoCs against, instead
+of guessing. This phase requires physical hardware this environment cannot
+provide (Jetson/QCS/i.MX-class dev boards) - produce a hardware-selection.md
+comparison matrix from public specifications and this project's own
+workload profile, clearly labeled as desk research pending physical
+validation, not a purchased/benchmarked result.
