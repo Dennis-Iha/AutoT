@@ -9,6 +9,7 @@ import pytest
 
 from core.common.config import REPO_ROOT, load_config
 from core.translation.model_registry import TranslationModelRegistry
+from core.tts.voice_registry import VoiceRegistry
 
 FIXTURES_SPEECH_DIR = REPO_ROOT / "tests" / "fixtures" / "speech"
 
@@ -49,5 +50,15 @@ def translation_registry() -> TranslationModelRegistry | None:
     ready (tools/setup_translation_models.sh has been run), else None."""
     registry = TranslationModelRegistry.load()
     if any(registry.get(s, t).is_ready() for s, t in registry.pairs()):
+        return registry
+    return None
+
+
+@pytest.fixture(scope="session")
+def tts_registry() -> VoiceRegistry | None:
+    """Returns a loaded VoiceRegistry if at least one voice is ready
+    (tools/setup_tts_models.sh has been run), else None."""
+    registry = VoiceRegistry.load()
+    if any(registry.get(v).is_ready() for v in registry.voice_ids()):
         return registry
     return None

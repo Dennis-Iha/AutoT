@@ -54,7 +54,7 @@ Translation                <-- IMPLEMENTED (Phase 6): core/translation (CTransla
    |
 English Text
    |
-Text-to-Speech              (Phase 7 - not yet implemented)
+Text-to-Speech              <-- IMPLEMENTED (Phase 7): core/tts (Piper, English only so far)
    |
 Audio DAC / amplifier
    |
@@ -68,7 +68,7 @@ proving it (Engineering Principle #1). Note these stages are not yet wired
 together into one pipeline (that's Phase 8) - each is independently tested
 today, e.g. via `tools/asr_benchmark.py` and `tools/translation_benchmark.py`.
 
-## Current implementation status (as of Phase 0-3)
+## Current implementation status (as of Phase 0-7)
 
 | Component | Status | Where |
 |---|---|---|
@@ -92,7 +92,7 @@ today, e.g. via `tools/asr_benchmark.py` and `tools/translation_benchmark.py`.
 | Language ID (whisper.cpp encoder, 9 languages) | done, tested on real (synthesized) speech per language; see `tools/language_id_benchmark.py` | `core/language_id/whisper_lid.py` |
 | ASR (whisper.cpp, tiny/base multilingual) | done, tested on real speech, exact-match transcription on English fixture; base model far from real-time on this CPU (up to ~90s for a 2s clip) - see `tools/asr_benchmark.py` | `core/asr/whisper_cpp_asr.py` |
 | Translation (CTranslate2, 8 source languages -> en) | done, tested; 270ms-1.2s warm latency, correct output for all 8; Spanish uniquely needs a BPE+Moses tokenizer (not SentencePiece) - see `tools/translation_benchmark.py` | `core/translation/ctranslate2_translator.py` |
-| TTS | not started (Phase 7) | `core/tts/` (empty) |
+| TTS (Piper, English) | done, tested; 0.38-0.53 real-time factor (faster than real-time) after model load; TTS->ASR round-trip WER=0.0 on all 3 test sentences via an independent ASR system - see `tools/tts_benchmark.py` | `core/tts/piper_tts.py` |
 | Streaming orchestration / full CLI pipeline | not started (Phase 8/9) | `core/streaming/`, `core/orchestration/` (empty) |
 | Everything hardware/firmware/backend/mobile | not started (Phase 12+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
 

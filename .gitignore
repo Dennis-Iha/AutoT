@@ -21,5 +21,6 @@ models/**/*.pt
 models/**/*.model
 models/asr/whisper/
 models/translation/argos/
+models/tts/piper/
 *.log
 .DS_Store

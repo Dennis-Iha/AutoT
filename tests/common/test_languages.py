@@ -27,17 +27,19 @@ def test_contains():
 
 
 def test_no_language_is_falsely_claimed_production_ready():
-    # TTS (Phase 7) hasn't landed yet, so nothing should claim "production"
-    # (which requires ASR+translation+TTS all benchmarked) until it does.
+    # "production" is reserved for Phase 30's defined, explicit quality
+    # gates actually passing - not claimed just because the pieces exist
+    # and produced correct output during development.
     reg = LanguageRegistry.load()
     assert reg.with_status("production") == []
 
 
 def test_status_reflects_actually_tested_phases():
-    # As of Phase 6: ASR+LID tested for all 9 (en is the ASR/LID target,
-    # not yet a translation source); translation tested for the 8 non-
-    # English source languages (see tools/translation_benchmark.py).
+    # As of Phase 7: English is the TTS target (+ tested as an ASR/LID
+    # source too) so it skips "translation_ready" per the pipeline's
+    # asymmetry (see core/common/languages.py); the 8 non-English v1
+    # source languages have ASR+LID+translation-to-en all tested.
     reg = LanguageRegistry.load()
-    assert reg.get("en").status == "asr_ready"
+    assert reg.get("en").status == "tts_ready"
     for code in EXPECTED_V1_LANGUAGES - {"en"}:
         assert reg.get(code).status == "translation_ready", code

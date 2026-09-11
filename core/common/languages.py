@@ -6,12 +6,21 @@ voice selection) should look languages up through this registry instead of
 switching on language codes directly, so adding language #10 is a data change
 (``models/registry/languages.json``) plus new model files, not a code change.
 
-``status`` values:
+``status`` values (a loose progression, not a strict linear one - v1's
+pipeline is asymmetric: <source language> speech -> ASR -> translate ->
+*English* TTS, so English's own path skips "translation_ready" and goes
+straight from ASR to TTS):
     "initial"       — part of the v1 target set, no models integrated yet.
     "asr_ready"      — an ASR model is registered and benchmarked for this language.
-    "translation_ready" — a translation model is registered and benchmarked.
-    "tts_ready"      — a TTS voice is registered and benchmarked.
-    "production"     — asr+translation+tts all benchmarked and passing quality gates.
+    "translation_ready" — a <this language>->en translation model is registered
+                          and benchmarked (only meaningful for non-English v1
+                          source languages).
+    "tts_ready"      — a TTS voice is registered and benchmarked (only
+                       meaningful for English today, the only TTS target).
+    "production"     — reserved for Phase 30's defined, explicit quality
+                       gates (WER/latency/etc. thresholds) actually passing,
+                       not just "the pieces exist and produced correct
+                       output in development" - no language is there yet.
 
 Do not report a language as supported to end users until it reaches
 "production" — see docs/architecture.md, "Language coverage is a claim, not

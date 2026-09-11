@@ -14,7 +14,7 @@ to work.
 | 4 | Language identification | **done** |
 | 5 | ASR (offline multilingual speech recognition) | **done** |
 | 6 | Translation engine | **done** |
-| 7 | Text-to-speech | not started |
+| 7 | Text-to-speech | **done** |
 | 8 | Complete software pipeline (`at-translate` CLI) | not started |
 | 9 | Real-time streaming + latency benchmarking | not started |
 | 10 | Offline mode / model manifest / checksum verification | not started |
@@ -117,9 +117,39 @@ concatenate-then-replace-marker detokenization, verified correct across all
 7 SentencePiece-based languages (regression-tested in
 `tests/translation/test_ctranslate2_translator.py`).
 
-## Immediate next step (Phase 7)
+## Phase 7 results summary: TTS (Piper)
 
-Implement offline English text-to-speech. Same pattern: `base.py` ABC
-(`synthesize()`, `synthesize_stream()`) first, then a concrete backend.
-Candidate: Piper (ONNX-based, no PyTorch, small per-voice models) - verify
-this before committing, per Engineering Principle #1.
+Piper (`tools/setup_tts_models.sh` downloads ONNX voice models from
+`rhasspy/piper-voices`) needs only `onnxruntime` - no PyTorch, consistent
+with every other engine chosen so far. Piper bundles its own espeak-ng
+phonemization data, so it doesn't depend on the espeak-ng binary built
+earlier for test fixtures.
+
+Caught a real bug during setup, not assumed away: a parallel download
+silently produced a truncated 27MB file for a 63MB voice model:
+onnxruntime failed with an opaque "Protobuf parsing failed" rather than a
+clear incomplete-download error. `tools/setup_tts_models.sh` now verifies
+downloaded size against the server's Content-Length before accepting a
+file - a general lesson applied only to this script so far; the earlier
+whisper.cpp/Argos setup scripts got lucky, not verified-safe, and should
+get the same check if they're touched again.
+
+Measured (`tools/tts_benchmark.py`): 0.38-0.53 real-time factor after
+model load (i.e. synthesis is 2-3x FASTER than real-time on this CPU,
+unlike whisper.cpp's ASR which is far slower than real-time - a useful
+asymmetry for Phase 9's streaming latency budget). The strongest quality
+signal isn't a synthetic metric: a full TTS->ASR round trip (synthesize
+with Piper, transcribe back with whisper.cpp) gives an exact match
+(WER=0.0) on all 3 test sentences, evidence the audio is genuinely
+intelligible speech, not just non-silent output.
+
+## Immediate next step (Phase 8)
+
+Wire the now-independently-working stages into one live pipeline: mic ->
+VAD -> denoise -> language ID -> ASR -> translation -> TTS -> speaker,
+as a CLI (`at-translate`). Reuse `tools/mic_vad_demo.py`'s microphone
+capture and `core/vad/segmenter.py`'s speech segments as the entry point;
+each detected segment flows through the chain built in Phases 3-7. Latency
+will be dominated by ASR (Phase 5's ~90s worst case on this CPU) until
+Phase 11 optimizes it - measure the full pipeline's end-to-end latency
+honestly rather than assuming Phase 9's streaming work will fix it first.

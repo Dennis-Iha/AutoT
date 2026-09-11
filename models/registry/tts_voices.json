@@ -1,0 +1,13 @@
+{
+  "_provenance": "Voice models from the Piper project (rhasspy/piper-voices on HuggingFace), MIT-licensed. Not trained by AT.",
+  "voices": [
+    {
+      "voice_id": "en_US-amy-medium",
+      "language": "en",
+      "engine": "piper",
+      "quality": "medium",
+      "sample_rate_hz": 22050,
+      "model_dir": "models/tts/piper/en_US-amy-medium"
+    }
+  ]
+}
