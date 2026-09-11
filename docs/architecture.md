@@ -40,9 +40,9 @@ ported to progressively smaller hardware. See "Hardware progression" below.
 ```
 Microphone(s)
    |
-Beamforming            (Phase 3 - interface exists, real impl not yet integrated)
+Beamforming               <-- IMPLEMENTED (Phase 3): core/beamforming (synthetic-signal validated only, no real mic array yet)
    |
-Noise suppression      (Phase 3 - interface exists, real impl not yet integrated)
+Noise suppression         <-- IMPLEMENTED (Phase 3): core/denoise (spectral subtraction + NLMS echo cancellation + spectral dereverb)
    |
 Voice Activity Detection  <-- IMPLEMENTED (Phase 1/2): core/vad
    |
@@ -66,7 +66,7 @@ plan, not working code. See `docs/roadmap.md` for what phase each stage
 belongs to, and never report a stage as working without an automated test
 proving it (Engineering Principle #1).
 
-## Current implementation status (as of Phase 0/1)
+## Current implementation status (as of Phase 0-3)
 
 | Component | Status | Where |
 |---|---|---|
@@ -82,7 +82,11 @@ proving it (Engineering Principle #1).
 | WebRTC VAD backend | done, tested (incl. documented false-positive-on-tone limitation) | `core/vad/webrtc_vad.py` |
 | Speech segmenter (onset/offset/hangover state machine) | done, tested | `core/vad/segmenter.py` |
 | mic -> VAD -> speech segment CLI demo | done, tested on real hardware | `tools/mic_vad_demo.py` |
-| Noise suppression / echo cancellation / beamforming | not started (Phase 3) | `core/denoise/`, `core/beamforming/` (empty) |
+| STFT/ISTFT utility | done, tested (round-trip error ~1e-15) | `core/denoise/stft.py` |
+| Noise suppression (spectral subtraction) | done, tested; measured ~6dB noise reduction / ~72% speech retained; does NOT fix VAD's broadband-noise false-positive on its own (see `tools/audio_cleanup_benchmark.py` output) | `core/denoise/noise_suppression.py` |
+| Echo cancellation (NLMS) | done, tested; measured ~29dB ERLE on a stationary synthetic echo path; no double-talk protection yet | `core/denoise/echo_cancellation.py` |
+| Dereverberation (spectral tail subtraction) | done, tested; measured ~10dB reverberant-tail reduction; single-channel simplified technique, NOT full WPE | `core/denoise/dereverberation.py` |
+| Beamforming (delay-and-sum + TDOA estimation) | done, tested; measured ~8.5dB SNR gain from correct alignment vs naive averaging; synthetic 2-channel signals only, no real mic array | `core/beamforming/delay_sum.py` |
 | Language ID | not started (Phase 4) | `core/language_id/` (empty) |
 | ASR | not started (Phase 5) | `core/asr/` (empty) |
 | Translation | not started (Phase 6) | `core/translation/` (empty) |

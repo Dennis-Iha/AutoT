@@ -1,1 +1,1 @@
-"""Noise suppression / echo cancellation / dereverberation. Phase 3 - not yet implemented."""
+"""Noise suppression, echo cancellation, and dereverberation (Phase 3)."""

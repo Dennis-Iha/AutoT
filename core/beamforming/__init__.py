@@ -1,1 +1,1 @@
-"""Multi-microphone beamforming. Phase 3 - not yet implemented."""
+"""Multi-microphone beamforming (Phase 3). See core/beamforming/base.py."""

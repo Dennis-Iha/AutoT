@@ -10,7 +10,7 @@ to work.
 | 0 | Project foundation (repo, config, logging, metrics, CI, test framework) | **done** |
 | 1 | Audio engine (mic capture, ring buffer, WAV I/O, diagnostics) | **done** |
 | 2 | Voice activity detection (streaming VAD, speech segmenter) | **done** |
-| 3 | Audio cleanup (noise suppression, echo cancellation, dereverberation, beamforming) | not started |
+| 3 | Audio cleanup (noise suppression, echo cancellation, dereverberation, beamforming) | **done** |
 | 4 | Language identification | not started |
 | 5 | ASR (offline multilingual speech recognition) | not started |
 | 6 | Translation engine | not started |
@@ -42,11 +42,38 @@ to work.
 | 32 | Commercial product architecture | not started |
 | 33 | Full documentation set | in progress (this file + architecture.md) |
 
-## Immediate next step (Phase 3)
+## Phase 3 results summary
 
-Implement noise suppression / echo cancellation / beamforming interfaces
-under `core/denoise/` and `core/beamforming/`, following the same pattern
-used in Phase 2 (`base.py` ABC + concrete backend + tests using synthetic
-signals with known SNR so accuracy claims are measurable, not assumed).
-Benchmark the effect on VAD false-positive rate using the tonal/noise test
-cases already identified in `tests/vad/test_webrtc_vad.py`.
+Implemented `core/denoise/{stft,noise_suppression,echo_cancellation,
+dereverberation}.py` and `core/beamforming/{base,delay_sum}.py`, each with a
+`base.py`-style ABC, a `Passthrough*` identity baseline, and a real
+algorithm, all measured against synthetic signals with known ground truth
+(not just "doesn't crash" tests) - see `tools/audio_cleanup_benchmark.py`
+for the full numbers. Headline measurements:
+
+- Noise suppression: ~6dB noise-floor reduction, ~72% speech energy retained
+  (spectral subtraction, over-subtraction=4.0 to compensate the systematic
+  underestimation bias of minimum-statistics noise tracking).
+- Echo cancellation: ~29dB ERLE on a stationary synthetic echo path (NLMS,
+  no double-talk protection).
+- Dereverberation: ~10dB reverberant-tail-energy reduction (single-channel
+  spectral technique, not full WPE - that needs real multi-mic hardware).
+- Beamforming: ~8.5dB SNR improvement from correct delay-and-sum alignment
+  vs. naive unaligned averaging (synthetic 2-channel only, no real array).
+
+**Important negative result, not swept under the rug**: noise suppression
+as currently tuned does NOT fix WebRtcVAD's false-positive-on-broadband-
+noise behavior (`tools/audio_cleanup_benchmark.py`'s `vad_impact` section) -
+pushing over-subtraction higher to try to defeat that synthetic case would
+trade away real speech retention, which is the wrong tradeoff. Revisit VAD
+noise-robustness with either a better VAD (e.g. a neural VAD) or the
+segmenter's existing onset-ratio hysteresis, not by over-suppressing.
+
+## Immediate next step (Phase 4)
+
+Implement automatic language identification for the initial nine languages
+(en/zh/hi/es/ar/fr/bn/pt/ru), returning `{language, confidence, timestamp}`
+and an explicit low-confidence fallback path (per the master spec: "Do not
+immediately translate if confidence is too low"). Follow the same pattern:
+`base.py` ABC first, then a concrete backend, benchmarked per-language
+rather than assumed to work uniformly.
