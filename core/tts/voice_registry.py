@@ -7,6 +7,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.common.model_manifest import verify_checksum
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY_PATH = REPO_ROOT / "models" / "registry" / "tts_voices.json"
 
@@ -19,6 +21,8 @@ class VoiceEntry:
     quality: str
     sample_rate_hz: int
     model_dir: Path
+    sha256: str | None = None  # of onnx_path
+    size_mb: float | None = None
 
     @property
     def onnx_path(self) -> Path:
@@ -29,7 +33,15 @@ class VoiceEntry:
         return self.model_dir / f"{self.voice_id}.onnx.json"
 
     def is_ready(self) -> bool:
+        """Fast existence check - use in hot paths."""
         return self.onnx_path.exists() and self.config_path.exists()
+
+    def is_valid(self) -> bool:
+        """Full checksum verification - use at startup / offline-readiness
+        checks, not per-request (reads the whole model file)."""
+        if self.sha256 is None:
+            return self.is_ready()
+        return self.is_ready() and verify_checksum(self.onnx_path, self.sha256)
 
 
 class VoiceRegistry:
@@ -52,6 +64,8 @@ class VoiceRegistry:
                 quality=row["quality"],
                 sample_rate_hz=row["sample_rate_hz"],
                 model_dir=REPO_ROOT / row["model_dir"],
+                sha256=row.get("sha256"),
+                size_mb=row.get("size_mb"),
             )
             for row in raw["voices"]
         ]

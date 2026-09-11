@@ -7,7 +7,9 @@
       "engine": "piper",
       "quality": "medium",
       "sample_rate_hz": 22050,
-      "model_dir": "models/tts/piper/en_US-amy-medium"
+      "model_dir": "models/tts/piper/en_US-amy-medium",
+      "sha256": "b3a6e47b57b8c7fbe6a0ce2518161a50f59a9cdd8a50835c02cb02bdd6206c18",
+      "size_mb": 63.2
     }
   ]
 }

@@ -17,7 +17,7 @@ to work.
 | 7 | Text-to-speech | **done** |
 | 8 | Complete software pipeline (`at-translate` CLI) | **done** |
 | 9 | Real-time streaming + latency benchmarking | **done** |
-| 10 | Offline mode / model manifest / checksum verification | not started |
+| 10 | Offline mode / model manifest / checksum verification | **done** |
 | 11 | Model optimization (quantization/distillation/pruning benchmarks) | not started |
 | 12 | Embedded development platform selection | not started |
 | 13 | AT Headphones prototype (first standalone physical product) | not started |
@@ -290,17 +290,51 @@ system responsive and not losing speech during a long individual
 utterance's processing, which is genuinely worth having, not a latency
 silver bullet.
 
-## Immediate next step (Phase 10)
+## Phase 10 results summary: offline mode / model manifest / checksum verification
 
-Offline mode / model manifest / checksum verification: a model manifest
-listing every installed ASR/translation/TTS model with version + checksum,
-verified at startup so a corrupted or partially-downloaded model (a real
-failure mode already encountered twice in this project - the truncated
-Piper voice download in Phase 7, and the accidental duplicate-nested-
-directory nested Argos extraction in Phase 6) is caught explicitly rather
-than failing confusingly deep inside ctranslate2/onnxruntime/whisper.cpp.
-Also formalize model loading/unloading for RAM management (Phase 6's
-`CTranslate2TranslationEngine.unload()` and Phase 7's `PiperTTSEngine.unload()`
-already exist per-engine; Phase 10 should give the orchestration layer a
-policy for when to call them, relevant once multiple language pairs need to
-coexist within an embedded device's RAM budget).
+`core/common/model_manifest.py` adds one shared primitive
+(`compute_sha256`/`verify_checksum`, streamed in 1MB chunks - model files
+run into the hundreds of MB) used uniformly by all three model registries.
+Every registry entry (`ASRModelEntry`, `TranslationModelEntry`, `VoiceEntry`)
+now carries a real, computed `sha256` + `size_mb` and gained an `is_valid()`
+method alongside the existing fast `is_ready()` existence check - `is_ready()`
+stays cheap for per-request hot paths (`TranslationEngine.supports_pair()`),
+`is_valid()` does full-file verification for startup/readiness checks.
+`core/asr/model_registry.py` and `models/registry/asr_models.json` are new -
+ASR previously had no manifest at all, just raw paths in `ASRConfig`.
+
+This is not a hypothetical safeguard: this project has already hit two real
+corrupted/malformed-model incidents that checksums would have caught
+immediately instead of surfacing as confusing errors deep in a third-party
+library - Phase 7's truncated Piper download (onnxruntime: "Protobuf parsing
+failed") and Phase 6's accidental duplicate-nested-directory Argos
+extraction (silently doubled a model's on-disk size, only caught by manual
+inspection). All checksums in this commit were computed fresh from the
+actual files currently on disk, not invented.
+
+`core/common/offline_runtime.py`'s `check_offline_readiness()` aggregates
+all three registries plus the whisper.cpp binary itself into one
+PASS/FAIL report (`tools/check_offline_readiness.py`), without loading any
+model into memory - deliberately: the check that's supposed to protect
+against a bad model shouldn't itself risk crashing on one. Verified for
+real: all 11 checks (whisper.cpp binary, base ASR model, 8 translation
+pairs, 1 TTS voice) pass with full checksum verification in ~15s on this
+machine.
+
+Model loading/unloading itself was already in place per-engine since
+Phases 6/7 (`CTranslate2TranslationEngine.unload()`,
+`PiperTTSEngine.unload()`); deliberately did NOT add an orchestration-level
+eviction *policy* (e.g. LRU across language pairs) here - there's no
+embedded RAM budget to design against yet (that's Phase 12+), and adding
+one now would be speculative, not measured.
+
+## Immediate next step (Phase 11)
+
+Model optimization: benchmark quantization (whisper.cpp ships
+`whisper-quantize`, already built at
+`third_party/whisper.cpp/build/bin/whisper-quantize`, unused so far) across
+FP16/INT8/INT4 for the ASR models, measuring the same axes Phase 9's
+profiling established matter most here - encoder latency specifically, not
+just overall WER - since that's where ~80% of the measured ~40s/utterance
+cost lives. Record results in the same honest, measured style as every
+other phase: a benchmark table, not a claim.

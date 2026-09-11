@@ -19,6 +19,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.common.model_manifest import verify_checksum
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY_PATH = REPO_ROOT / "models" / "registry" / "translation_models.json"
 
@@ -38,13 +40,24 @@ class TranslationModelEntry:
     # specifically, not this parent).
     model_dir: Path
     tokenizer_model: Path  # sentencepiece.model or bpe.model
+    sha256: str | None = None  # of ctranslate2_model_dir/model.bin
+    size_mb: float | None = None
 
     @property
     def ctranslate2_model_dir(self) -> Path:
         return self.model_dir / "model"
 
     def is_ready(self) -> bool:
+        """Fast existence check - use in hot paths (this is what
+        TranslationEngine.supports_pair() calls per-request)."""
         return (self.ctranslate2_model_dir / "model.bin").exists() and self.tokenizer_model.exists()
+
+    def is_valid(self) -> bool:
+        """Full checksum verification - use at startup / offline-readiness
+        checks, not per-request (reads the whole model file)."""
+        if self.sha256 is None:
+            return self.is_ready()
+        return self.is_ready() and verify_checksum(self.ctranslate2_model_dir / "model.bin", self.sha256)
 
 
 class TranslationModelRegistry:
@@ -69,6 +82,8 @@ class TranslationModelRegistry:
                     engine=row["engine"],
                     model_dir=REPO_ROOT / row["model_dir"],
                     tokenizer_model=REPO_ROOT / row["tokenizer_model"],
+                    sha256=row.get("sha256"),
+                    size_mb=row.get("size_mb"),
                 )
             )
         return cls(entries)

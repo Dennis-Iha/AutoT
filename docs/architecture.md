@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-9)
+## Current implementation status (as of Phase 0-10)
 
 | Component | Status | Where |
 |---|---|---|
@@ -100,6 +100,8 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | `at-translate` CLI (mic or file input, live playback or WAV output) | done, smoke-tested in both file mode (real translated output produced) and live mic mode (starts/stops cleanly, zero false-positive segments on silence) | `tools/at_translate.py` |
 | Streaming session (decouples slow pipeline processing from the real-time audio thread) | done, tested; fixes a real bug found in Phase 8 (mic blocked for 17-90s per segment inside the PortAudio callback) - see docs/roadmap.md's Phase 9 section | `core/streaming/session.py` |
 | Latency benchmark (capture/VAD/LID/ASR/translation/TTS/playback/total) | done; measured ~38-44s total per utterance on this CPU (base model), dominated by LID+ASR encoder passes - not a threading/streaming-fixable cost, see Phase 11/12 | `tools/latency_benchmark.py` |
+| Model manifest + checksum verification (ASR/translation/TTS, uniform) | done, tested; every registry entry carries a real computed SHA256, `is_ready()` (fast) vs `is_valid()` (full checksum) both covered - would have caught two real incidents already hit in this project (Phase 6/7) immediately instead of a confusing deep failure | `core/common/model_manifest.py`, `core/asr/model_registry.py` |
+| Offline readiness check (aggregates all 3 registries + whisper.cpp binary) | done, tested; verified for real - all 11 checks pass in ~15s with full checksums | `core/common/offline_runtime.py`, `tools/check_offline_readiness.py` |
 | Everything hardware/firmware/backend/mobile | not started (Phase 12+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
 
 ## Language coverage is a claim, not an assumption

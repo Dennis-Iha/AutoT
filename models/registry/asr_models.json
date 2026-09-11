@@ -1,0 +1,32 @@
+{
+  "_provenance": "ggml multilingual Whisper models from ggerganov/whisper.cpp on HuggingFace (converted from OpenAI's Whisper). Not trained or fine-tuned by AT. Fetched by tools/setup_whisper_cpp.sh.",
+  "models": [
+    {
+      "model_id": "whisper-tiny",
+      "size_class": "tiny",
+      "engine": "whisper_cpp",
+      "multilingual": true,
+      "path": "models/asr/whisper/ggml-tiny.bin",
+      "sha256": "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
+      "size_mb": 77.7
+    },
+    {
+      "model_id": "whisper-base",
+      "size_class": "base",
+      "engine": "whisper_cpp",
+      "multilingual": true,
+      "path": "models/asr/whisper/ggml-base.bin",
+      "sha256": "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
+      "size_mb": 148.0
+    },
+    {
+      "model_id": "whisper-small",
+      "size_class": "small",
+      "engine": "whisper_cpp",
+      "multilingual": true,
+      "path": "models/asr/whisper/ggml-small.bin",
+      "sha256": "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
+      "size_mb": 487.6
+    }
+  ]
+}

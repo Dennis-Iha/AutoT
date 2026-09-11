@@ -31,3 +31,43 @@ def test_ctranslate2_model_dir_is_model_subdirectory():
 def test_supports_pair_false_for_unknown():
     registry = TranslationModelRegistry.load()
     assert registry.supports_pair("xx", "en") is False
+
+
+def test_registry_entries_have_checksums():
+    # Phase 10: every model entry should carry a sha256 for offline-
+    # readiness verification (core/common/offline_runtime.py).
+    registry = TranslationModelRegistry.load()
+    for source, target in registry.pairs():
+        entry = registry.get(source, target)
+        assert entry is not None
+        assert entry.sha256 is not None
+        assert len(entry.sha256) == 64
+
+
+def test_is_valid_true_when_installed_and_checksum_matches():
+    registry = TranslationModelRegistry.load()
+    entry = registry.get("ar", "en")
+    assert entry is not None
+    if entry.is_ready():  # skip if tools/setup_translation_models.sh hasn't run
+        assert entry.is_valid() is True
+
+
+def test_is_valid_false_for_wrong_checksum():
+    from dataclasses import replace
+
+    registry = TranslationModelRegistry.load()
+    entry = registry.get("ar", "en")
+    assert entry is not None
+    if entry.is_ready():
+        corrupted = replace(entry, sha256="0" * 64)
+        assert corrupted.is_valid() is False
+
+
+def test_is_valid_falls_back_to_is_ready_when_no_checksum_recorded():
+    from dataclasses import replace
+
+    registry = TranslationModelRegistry.load()
+    entry = registry.get("ar", "en")
+    assert entry is not None
+    no_checksum = replace(entry, sha256=None)
+    assert no_checksum.is_valid() == no_checksum.is_ready()

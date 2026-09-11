@@ -17,11 +17,12 @@ See `docs/architecture.md` for the full layered architecture and
 
 ## Status
 
-**Phases 0-9 done**: project foundation, audio capture/playback, VAD, audio
+**Phases 0-10 done**: project foundation, audio capture/playback, VAD, audio
 cleanup, language ID, ASR (whisper.cpp), translation (CTranslate2), TTS
-(Piper), a complete wired pipeline (`at-translate`), and real-time streaming
-(mic capture decoupled from slow pipeline processing) — all running and
-tested on a Linux workstation. See `docs/architecture.md`'s status table for
+(Piper), a complete wired pipeline (`at-translate`), real-time streaming
+(mic capture decoupled from slow pipeline processing), and offline-mode
+model manifests with checksum verification — all running and tested on a
+Linux workstation. See `docs/architecture.md`'s status table for
 exactly what's tested vs. still a stub, and `docs/roadmap.md`'s Phase 8/9
 sections for two important corrections: language ID accuracy on this
 project's synthesized test fixtures is honestly only 2-3/9 languages, not
@@ -69,6 +70,7 @@ python -m tools.language_id_benchmark    # per-language LID accuracy (currently 
 python -m tools.translation_benchmark    # per-language-pair latency + output
 python -m tools.tts_benchmark            # TTS latency + TTS->ASR round-trip WER
 python -m tools.latency_benchmark        # full capture/VAD/LID/ASR/translation/TTS/playback breakdown
+python -m tools.check_offline_readiness  # verify every model is present + checksum-valid
 ```
 
 Run the complete pipeline (mic → VAD → language ID → ASR → translation →

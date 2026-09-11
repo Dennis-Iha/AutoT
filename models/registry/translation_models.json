@@ -8,7 +8,9 @@
       "version": "1.0",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/ar_en",
-      "tokenizer_model": "models/translation/argos/ar_en/sentencepiece.model"
+      "tokenizer_model": "models/translation/argos/ar_en/sentencepiece.model",
+      "sha256": "b4a1df5f74720089425e983e4795d6e91f7de7df730c56c365240a3c4a79a43e",
+      "size_mb": 94.4
     },
     {
       "model_id": "argos-bn-en-1.9",
@@ -17,7 +19,9 @@
       "version": "1.9",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/bn_en",
-      "tokenizer_model": "models/translation/argos/bn_en/sentencepiece.model"
+      "tokenizer_model": "models/translation/argos/bn_en/sentencepiece.model",
+      "sha256": "f3d3323089979cfc88163ab633877a2de6408f2493aa803ae1423432e7bade6a",
+      "size_mb": 81.1
     },
     {
       "model_id": "argos-zh-en-1.9",
@@ -26,7 +30,9 @@
       "version": "1.9",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/zh_en",
-      "tokenizer_model": "models/translation/argos/zh_en/sentencepiece.model"
+      "tokenizer_model": "models/translation/argos/zh_en/sentencepiece.model",
+      "sha256": "edd8c8a6863d36959613ff291074627a1635fab2f51b872ef437e924d238921a",
+      "size_mb": 82.7
     },
     {
       "model_id": "argos-fr-en-1.9",
@@ -35,7 +41,9 @@
       "version": "1.9",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/fr_en",
-      "tokenizer_model": "models/translation/argos/fr_en/sentencepiece.model"
+      "tokenizer_model": "models/translation/argos/fr_en/sentencepiece.model",
+      "sha256": "12f4dd41956b8975067b710675ce0668073b4d682892a9b1c496287cecbd0802",
+      "size_mb": 79.9
     },
     {
       "model_id": "argos-hi-en-1.1",
@@ -44,7 +52,9 @@
       "version": "1.1",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/hi_en",
-      "tokenizer_model": "models/translation/argos/hi_en/sentencepiece.model"
+      "tokenizer_model": "models/translation/argos/hi_en/sentencepiece.model",
+      "sha256": "fa0d5c303538d95a54c2a66ffb372abe184d76417f2df5c32bbf531be3bed7eb",
+      "size_mb": 115.8
     },
     {
       "model_id": "argos-pt-en-1.9",
@@ -53,7 +63,9 @@
       "version": "1.9",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/pt_en",
-      "tokenizer_model": "models/translation/argos/pt_en/sentencepiece.model"
+      "tokenizer_model": "models/translation/argos/pt_en/sentencepiece.model",
+      "sha256": "d0baa028926f7eceb6e8bcc8d75bd9ed4184665ff1702b93d580e3e2046ddc18",
+      "size_mb": 80.1
     },
     {
       "model_id": "argos-ru-en-1.9",
@@ -62,7 +74,9 @@
       "version": "1.9",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/ru_en",
-      "tokenizer_model": "models/translation/argos/ru_en/sentencepiece.model"
+      "tokenizer_model": "models/translation/argos/ru_en/sentencepiece.model",
+      "sha256": "026d5f34266b4235c13fc29c665f151b88d0c1b02b0be7f87734fe9c511e20bc",
+      "size_mb": 170.5
     },
     {
       "model_id": "argos-es-en-1.9",
@@ -71,7 +85,9 @@
       "version": "1.9",
       "engine": "ctranslate2",
       "model_dir": "models/translation/argos/es_en",
-      "tokenizer_model": "models/translation/argos/es_en/bpe.model"
+      "tokenizer_model": "models/translation/argos/es_en/bpe.model",
+      "sha256": "3c634f2fbfce11ba9c3db839db50079c08d3cdb12c74f2c21671f742dbbb30f1",
+      "size_mb": 314.1
     }
   ]
 }
