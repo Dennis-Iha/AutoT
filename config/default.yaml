@@ -1,0 +1,19 @@
+# Default AT-CORE configuration. Overridable via a user YAML file or
+# AT_<SECTION>__<KEY> environment variables (see core/common/config.py).
+
+log_level: INFO
+json_logs: false
+
+audio:
+  sample_rate_hz: 16000
+  channels: 1
+  blocksize_samples: 320   # 20ms @ 16kHz, matches webrtcvad frame size
+  device: null              # null = system default input device
+  ring_buffer_seconds: 10.0
+
+vad:
+  aggressiveness: 2         # webrtcvad 0 (least aggressive) - 3 (most aggressive)
+  frame_ms: 20               # must be 10, 20, or 30 for webrtcvad
+  min_speech_ms: 200          # ignore blips shorter than this
+  hangover_ms: 300            # trailing silence required to close a segment
+  max_segment_ms: 20000       # force-close very long segments
