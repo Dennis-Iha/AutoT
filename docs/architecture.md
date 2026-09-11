@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-11)
+## Current implementation status (as of Phase 0-11, plus Phase 12 desk research)
 
 | Component | Status | Where |
 |---|---|---|
@@ -103,7 +103,8 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Model manifest + checksum verification (ASR/translation/TTS, uniform) | done, tested; every registry entry carries a real computed SHA256, `is_ready()` (fast) vs `is_valid()` (full checksum) both covered - would have caught two real incidents already hit in this project (Phase 6/7) immediately instead of a confusing deep failure | `core/common/model_manifest.py`, `core/asr/model_registry.py` |
 | Offline readiness check (aggregates all 3 registries + whisper.cpp binary) | done, tested; verified for real - all 11 checks pass in ~15s with full checksums | `core/common/offline_runtime.py`, `tools/check_offline_readiness.py` |
 | ASR quantization benchmark (q4_0/q5_0/q8_0 vs f16) | done; real measured finding: q8_0 is fastest (6.4s avg, 3.2x speedup) despite NOT being the smallest file - quantization level and speed are not monotonically related on this CPU; WER/CER essentially unaffected by quantization. Power not measured (no root RAPL/perf access) - see docs/roadmap.md's Phase 11 section | `tools/quantize_asr_models.sh`, `tools/quantization_benchmark.py` |
-| Everything hardware/firmware/backend/mobile | not started (Phase 12+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
+| Embedded hardware selection (Jetson/QCS6490/i.MX 8M Plus comparison) | desk research done, real official specs cited; physical validation NOT possible in this environment (no hardware) - key finding: whisper.cpp acceleration support differs sharply across candidates, invisible from TOPS alone | `hardware/hardware-selection.md` |
+| Everything else hardware/firmware/backend/mobile | not started - all require physical hardware/devices this environment doesn't have (Phase 13+) | `firmware/`, `hardware/`, `backend/`, `apps/` (skeleton only) |
 
 ## Language coverage is a claim, not an assumption
 

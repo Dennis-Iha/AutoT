@@ -17,15 +17,21 @@ See `docs/architecture.md` for the full layered architecture and
 
 ## Status
 
-**Phases 0-11 done**: project foundation, audio capture/playback, VAD, audio
-cleanup, language ID, ASR (whisper.cpp), translation (CTranslate2), TTS
-(Piper), a complete wired pipeline (`at-translate`), real-time streaming
-(mic capture decoupled from slow pipeline processing), offline-mode model
-manifests with checksum verification, and ASR quantization benchmarking —
-all running and tested on a Linux workstation. Phase 11 found something
-genuinely useful: the most aggressive quantization was NOT the fastest one
-on this CPU — see `docs/roadmap.md`'s Phase 11 section before assuming
-"smaller = faster." See `docs/architecture.md`'s status table for
+**Phases 0-11 done** (software, all tested on a Linux workstation): project
+foundation, audio capture/playback, VAD, audio cleanup, language ID, ASR
+(whisper.cpp), translation (CTranslate2), TTS (Piper), a complete wired
+pipeline (`at-translate`), real-time streaming, offline-mode model
+manifests with checksum verification, and ASR quantization benchmarking.
+Phase 11 found something genuinely useful: the most aggressive quantization
+was NOT the fastest one on this CPU — see `docs/roadmap.md`'s Phase 11
+section before assuming "smaller = faster."
+
+**Phase 12 (embedded hardware selection) is desk research only** — see
+`hardware/hardware-selection.md`. This environment has no physical hardware
+to validate against; from here on, phases that need physical devices, lab
+equipment, or infrastructure this environment doesn't have are handled
+honestly: real work where possible, clearly flagged as unvalidated where
+not, never simulated as if tested. See `docs/architecture.md`'s status table for
 exactly what's tested vs. still a stub, and `docs/roadmap.md`'s Phase 8/9
 sections for two important corrections: language ID accuracy on this
 project's synthesized test fixtures is honestly only 2-3/9 languages, not

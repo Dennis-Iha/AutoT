@@ -19,7 +19,7 @@ to work.
 | 9 | Real-time streaming + latency benchmarking | **done** |
 | 10 | Offline mode / model manifest / checksum verification | **done** |
 | 11 | Model optimization (quantization/distillation/pruning benchmarks) | **done** |
-| 12 | Embedded development platform selection | not started |
+| 12 | Embedded development platform selection | **desk research done - physical validation pending real hardware** |
 | 13 | AT Headphones prototype (first standalone physical product) | not started |
 | 14 | Embedded audio (I2S/PDM drivers, HAL) | not started |
 | 15 | Firmware (bootloader, secure boot, OTA) | not started |
@@ -379,17 +379,47 @@ or tied accuracy, and still a substantial size reduction (45% of original)
 even though it's not the smallest file. Do not default to the most
 aggressive quantization without measuring on the actual target first.
 
-## Immediate next step (Phase 12)
+## Phase 12 results summary: embedded platform selection (desk research)
 
-Embedded development platform selection - the phase this project's own
-master spec is most explicit should NOT be started casually ("do not
-choose a chip based only on TOPS," "do not design the final earbud PCB
-before the AI workload has been benchmarked"). Phases 0-11 have now
-produced real, measured numbers (encoder-latency-dominated cost, ~40s/
-utterance on this workstation CPU, cut to ~6.4s avg with q8_0 quantization
-on the ASR side alone) to evaluate candidate embedded SoCs against, instead
-of guessing. This phase requires physical hardware this environment cannot
-provide (Jetson/QCS/i.MX-class dev boards) - produce a hardware-selection.md
-comparison matrix from public specifications and this project's own
-workload profile, clearly labeled as desk research pending physical
-validation, not a purchased/benchmarked result.
+This is the first phase this environment cannot fully complete - no
+physical hardware. What was done instead, honestly scoped: `hardware/
+hardware-selection.md` compares NVIDIA Jetson Orin Nano Super, Qualcomm
+QCS6490, and NXP i.MX 8M Plus using their *current, official* documentation
+(researched via a parallel multi-agent workflow, each candidate
+independently verified with cited sources - not third-party summaries or
+this project's own possibly-stale prior assumptions), evaluated against
+this project's own Phases 5-11 measured workload rather than generic AI
+benchmarks.
+
+**The finding that matters most**: whisper.cpp/GGML acceleration support is
+NOT equivalent across the three candidates, and this is invisible from TOPS
+figures alone (the exact trap Engineering Principle #18 warns about) -
+Jetson has a real (community-verified) CUDA backend path; Qualcomm's own
+bug tracker shows Whisper models currently fail to export cleanly for the
+QCS6490's Hexagon NPU; NXP's own eIQ documentation scopes its Whisper
+support to newer i.MX 95 silicon, not the 8M Plus researched here. Also
+confirmed accurate: the i.MX 8M Plus's "8-channel PDM microphone input"
+claim from this project's original spec, verified against NXP's datasheet
+table and block diagram.
+
+Recommendation: acquire a Jetson Orin Nano Super devkit for Phase 13
+physical validation (lowest integration risk given real whisper.cpp
+support, microSD-boot-by-default matching this project's actual hardware
+target). This is explicitly NOT a purchase order or a claim that anything
+has been physically tested - see the document's own "what this
+recommendation is not" section.
+
+## Immediate next step (Phase 13+)
+
+Phases 13 onward (AT Headphones prototype, embedded audio drivers,
+firmware, dual-earbud system, mobile app, backend, security/privacy,
+battery/thermal engineering, custom PCB, miniaturization, manufacturing,
+factory test) all require physical hardware, lab equipment, or
+infrastructure (a phone to run a mobile app on, a server to deploy a
+backend to) this sandboxed development environment does not have. Continue
+honestly: produce what's genuinely producible without fabricating physical
+results (backend/mobile app scaffolding that runs and is tested locally,
+firmware architecture documents, security/privacy policy documents,
+manufacturing process templates), and clearly flag every phase that
+requires equipment or access this environment cannot provide rather than
+simulating success.
