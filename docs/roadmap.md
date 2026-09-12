@@ -39,8 +39,8 @@ to work.
 | 29 | OTA model update system | **done - real, tested verify+atomic-install pipeline plus a real backend download endpoint closing the loop** |
 | 30 | Performance testing across all 9 languages/environments | **done (languages) - real sweep found genuinely-correct rate is only 2/9, with a new, more serious LID-misdetection finding; environments not testable, no physical hardware** |
 | 31 | Product metrics dashboards | **done - real backend aggregation API + CLI report tool, no web UI (no frontend tooling exists); smoke-tested with genuinely real pipeline data** |
-| 32 | Commercial product architecture | not started |
-| 33 | Full documentation set | in progress (this file + architecture.md) |
+| 32 | Commercial product architecture | **done - product-architecture synthesis, readiness matrix, critical path to launch; no pricing/business-model content (not derivable from a codebase)** |
+| 33 | Full documentation set | **done - 13 new master-spec-named docs (hardware/firmware/ai/models/audio/security/manufacturing/testing/deployment/mobile/backend/api/troubleshooting) plus privacy.md already complete since Phase 21, every one drafted then independently fact-checked against the real codebase** |
 
 ## Phase 3 results summary
 
@@ -732,4 +732,94 @@ gained an optional `--report-to`/`--token`/`--device-id` flag so a full
 9-language sweep can feed this same real pipeline (never fabricated
 numbers) rather than needing an actual fleet to populate a dashboard.
 
-## Immediate next step (Phase 32+)
+## Phase 32 results summary: commercial product architecture
+
+`docs/commercial-product-architecture.md` synthesizes Phases 0-31 into one
+product-architecture view rather than a business plan: two SKUs (AT
+Headphones, AT Pods) sharing one AT-CORE engine, a readiness matrix
+applying this project's own prototype/engineering-prototype/production-
+candidate/production-ready framework to every major subsystem, and the
+real critical path to a commercial launch - chip selection (Phase 12/22)
+blocks everything physical; Phase 30's 2/9 genuinely-correct language rate
+blocks any "9 languages" commercial claim; 14-32s per-utterance latency
+blocks real-time usability; secure boot is a lower-priority gap than the
+other three. Deliberately excludes pricing, market sizing, and business
+model - this codebase has no data to inform them, and inventing numbers
+would be the same category of fabrication this project's Engineering
+Principles already forbid for benchmarks and hardware specs.
+
+## Phase 33 results summary: full documentation set
+
+Drafted and independently verified the 13 remaining master-spec-named
+documentation files (`docs/hardware.md`, `firmware.md`, `ai.md`,
+`models.md`, `audio.md`, `security.md`, `manufacturing.md`, `testing.md`,
+`deployment.md`, `mobile.md`, `backend.md`, `api.md`, `troubleshooting.md` -
+`docs/privacy.md` was already complete since Phase 21) using a multi-agent
+workflow: one agent per file drafted it against the real codebase, then a
+second pass of independent agents re-checked every specific claim (file
+paths, model counts, measured numbers, endpoint lists, test counts, quoted
+docstrings) against the actual current source and ran the real test suite
+where relevant, fixing anything inaccurate directly rather than just
+flagging it.
+
+This verification pass earned its cost by catching real mistakes before
+they shipped, not just confirming a clean bill of health:
+
+- `docs/ai.md`'s pipeline diagram had the `UNSUPPORTED_LANGUAGE` check
+  placed after ASR; the real control flow in
+  `core/orchestration/pipeline.py` runs it right after the LID confidence
+  check, before ASR - corrected. It also conflated Phase 8's small-model
+  finding (confidently wrong at 0.79-0.85 confidence) with Phase 30's
+  base-model finding (0.51-0.59) as if they were the same run - they
+  aren't, and both are now attributed to the correct model/phase.
+- `docs/models.md` wrongly claimed both Spanish translation directions use
+  the BPE tokenizer and cited a stale model_id (`argos-es-en-1.0` instead
+  of the real `argos-es-en-1.9`); direct inspection of
+  `models/registry/translation_models.json` showed only `es->en` uses
+  `bpe.model` - `en->es` uses SentencePiece like every other entry.
+  Corrected, along with an overstated claim about what
+  `tools/verify_model_manifests.py` actually re-verifies (the signature
+  against the manifest's recorded digest, not a fresh re-hash of the file).
+- `docs/mobile.md` overstated the backend's auth boundary - `GET /models`,
+  `GET /models/{model_id}/download`, and `GET /firmware` are deliberately
+  unauthenticated by design (checksum+signature is the real security
+  boundary for a model package, not access control); narrowed the claim to
+  the device-scoped routes that actually require auth.
+- `docs/testing.md` misquoted a docstring from
+  `tools/translation_benchmark.py` (dropped one word); corrected to match
+  the source verbatim.
+- `docs/security.md`'s claim that grepping `backend/` for TLS-related
+  terms "returns nothing" wasn't literally reproducible - it returns 3
+  lines, all incidental substring matches of "passlib" (which contains
+  "ssl"). Reworded so the underlying claim (no real TLS/SSL setup) still
+  holds precisely, without an unreproducible grep claim attached to it.
+
+Writing this documentation set surfaced one finding outside the docs
+themselves, not invented for the doc set but real and worth fixing where
+found: auditing `.github/workflows/ci.yml` ahead of `docs/deployment.md`
+uncovered that GitHub Actions has failed with `startup_failure` (0 jobs
+ever scheduled) on every push since at least Phase 12 - an account-level
+block this session cannot diagnose further with its current repo+workflow
+OAuth scopes (needs the repository owner to check GitHub's own Settings ->
+Billing/Actions), separate from a real, independent bug in the workflow
+file itself (never installed the `backend`/`ota` extras, so `backend/` was
+never linted, type-checked, or test-collected in CI) which WAS fixed in
+this same session. Both problems are documented honestly in
+`docs/deployment.md` and `docs/troubleshooting.md` rather than glossed
+over - every test claim made throughout this entire 33-phase build was
+run and verified locally, not via CI, and that remains true regardless of
+whether the GitHub Actions block is ever resolved.
+
+## Project status: all 33 phases addressed
+
+Every phase from the master spec has now been either built and tested for
+real, or - where physical hardware, a mobile SDK/device, or business data
+this codebase cannot honestly produce was required - documented as a
+clearly-labeled design gap with the specific blocker named. The
+`docs/commercial-product-architecture.md` readiness matrix and this file's
+own phase table are the two places to check current status phase-by-phase;
+neither should be read as "finished" in the sense of production-ready -
+the single highest-leverage open item remains Phase 12/22's unresolved
+production chip selection, which blocks every downstream physical phase,
+and Phase 30's language-accuracy gap, which blocks any broad commercial
+language claim.

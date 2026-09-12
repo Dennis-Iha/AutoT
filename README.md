@@ -115,6 +115,23 @@ environment. Smoke-tested end to end with two genuinely real pipeline runs
 (not fabricated fleet data) reported to a live backend and rendered
 correctly.
 
+**Phases 32-33: commercial architecture synthesis + full documentation
+set.** `docs/commercial-product-architecture.md` applies this project's
+own prototype/engineering-prototype/production-candidate/production-ready
+framework across every subsystem and names the real critical path to a
+commercial launch — deliberately no pricing or market data, since none of
+that is derivable from a codebase. `docs/` also gained the master spec's
+remaining 13 named files (hardware, firmware, ai, models, audio, security,
+manufacturing, testing, deployment, mobile, backend, api, troubleshooting
+— `docs/privacy.md` was already done in Phase 21), each drafted and then
+independently fact-checked against the real code by a separate pass that
+caught and fixed several real inaccuracies before publishing. That same
+audit also found GitHub Actions CI has failed with `startup_failure` on
+every push since at least Phase 12 (an account-level block needing the
+repo owner's attention — see `docs/deployment.md`) and fixed a real,
+separate bug in the workflow file itself (it never installed the
+`backend`/`ota` extras).
+
 ## Initial language set
 
 English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali,

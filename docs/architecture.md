@@ -70,7 +70,7 @@ together into one pipeline (`core/orchestration/pipeline.py`, exposed as the
 Phase 8 correction before assuming the wired pipeline works for all 9
 languages; only 2-3 are currently confirmed reliably routed by LID.
 
-## Current implementation status (as of Phase 0-31; Phase 12-15/18/22-28 are desk research/design docs, no physical hardware)
+## Current implementation status (as of Phase 0-33; Phase 12-15/18/22-28 are desk research/design docs, no physical hardware)
 
 | Component | Status | Where |
 |---|---|---|
@@ -110,7 +110,7 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Dual-earbud coordination (master election, failure detection, promotion) | done, tested (11 tests) against a simulated channel - no real BLE hardware exists; every spec-required scenario covered (left only, right only, both, primary failure, battery degradation, packet loss) | `core/coordination/node.py`, `core/coordination/channel.py` |
 | Conversation Mode (two-direction translation) | done, tested with fakes (9 tests) and real models (3 live tests, real Spanish<->English exchange); speaker identification is explicit caller input, NOT automatic diarization (unimplemented, honestly scoped) | `core/orchestration/conversation.py` |
 | Mobile app architecture | design document only - no mobile SDK, device, or emulator in this environment | `apps/mobile-app-architecture.md` |
-| Backend (auth, devices, models, firmware/OTA) | done, tested (20 tests); FastAPI + SQLAlchemy + SQLite (no Docker/Postgres server in this environment); `GET /models` reuses Phases 6/7/10's real registries, not a second mock list | `backend/` |
+| Backend (auth, devices, models, firmware/OTA/metrics) | done, tested (30 tests as of Phase 33's doc audit, up from 20 at Phase 19 - grew with Phases 29/31's download endpoint and metrics); FastAPI + SQLAlchemy + SQLite (no Docker/Postgres server in this environment); `GET /models` reuses Phases 6/7/10's real registries, not a second mock list | `backend/` |
 | Model package signing (Ed25519, extends Phase 10 checksums) | done, tested (7 unit tests + real end-to-end run against all 20 installed model manifest entries, all verify); signs the SHA256 digest, not raw file bytes; dev keypair only (`.dev_signing_key/`, gitignored) - no HSM, no production AT signing key exists | `core/security/package_signing.py`, `tools/sign_model_manifests.py`, `tools/verify_model_manifests.py` |
 | Secure boot / signed firmware verification on-device | not started - needs physical hardware with a boot ROM/secure element; see `firmware/architecture.md` | `firmware/` (design doc) |
 | No-audio-persistence guarantee (privacy) | done, tested (4 tests, incl. real whisper.cpp end-to-end temp-dir diffing and a simulated-crash cleanup path); found and honestly documented two real residual gaps (temp files aren't power-loss-safe, `unlink()` isn't secure erase) rather than claiming a stronger guarantee than what's actually true | `tests/privacy/test_no_audio_persistence.py`, `docs/privacy.md` |
@@ -119,6 +119,9 @@ languages; only 2-3 are currently confirmed reliably routed by LID.
 | Charging case | design doc done, real competitor reference (Timekettle case-assisted-runtime model); battery sizing blocked on Phase 22 | `hardware/charging-case.md` |
 | Manufacturing (EVT/DVT/PVT) + automated factory test | process + AT-specific acceptance criteria documented, reusing real Phase 3/8-11/20 tools; not executed, no physical unit exists | `hardware/manufacturing-and-factory-test.md` |
 | OTA model update system (verify + atomic install + real download endpoint) | done, tested (9 unit/live tests + a real end-to-end backend download+install test + a real smoke test against a live uvicorn server); fails closed on missing signature verification, leaves existing model untouched on any failed update | `core/ota/model_updater.py`, `backend/routes/models.py`'s `/models/{id}/download`, `tools/ota_download_and_apply.py` |
+| Commercial product architecture synthesis | done - readiness matrix (prototype/engineering-prototype/production-candidate/production-ready) across every subsystem, real critical path to launch; deliberately no pricing/market data (not derivable from this codebase) | `docs/commercial-product-architecture.md` |
+| Full documentation set (14 master-spec-named files) | done - 13 files drafted and independently fact-checked against the real codebase via a multi-agent workflow (caught and fixed several real inaccuracies before publishing, see `docs/roadmap.md`'s Phase 33 section), plus `docs/privacy.md` already complete since Phase 21 | `docs/hardware.md`, `firmware.md`, `ai.md`, `models.md`, `audio.md`, `security.md`, `manufacturing.md`, `testing.md`, `deployment.md`, `mobile.md`, `backend.md`, `api.md`, `troubleshooting.md` |
+| CI pipeline correctness | GitHub Actions has failed with `startup_failure` (0 jobs scheduled) on every push since at least Phase 12 - an account-level block needing the repo owner to check GitHub Settings -> Billing/Actions, not resolvable from this environment; a separate, real bug in the workflow file itself (never installed `backend`/`ota` extras) WAS found and fixed | `.github/workflows/ci.yml`, `docs/deployment.md`, `docs/troubleshooting.md` |
 
 ## Language coverage is a claim, not an assumption
 
