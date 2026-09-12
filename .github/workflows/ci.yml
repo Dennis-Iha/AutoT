@@ -16,19 +16,49 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Cache whisper.cpp build + downloaded models
+        uses: actions/cache@v4
+        with:
+          path: |
+            third_party/whisper.cpp
+            models/asr/whisper
+            models/translation/argos
+            models/tts/piper
+          key: at-models-${{ hashFiles('tools/setup_whisper_cpp.sh', 'tools/setup_translation_models.sh', 'tools/setup_tts_models.sh') }}
+
       - name: Install system audio/build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config portaudio19-dev libsndfile1-dev
 
+      # Backend (fastapi/sqlalchemy/bcrypt/httpx/...) and ota (httpx) extras
+      # are real, required dependencies of backend/ and tools/ota_download_and_apply.py
+      # + tools/metrics_report.py - installing only [dev] here previously left
+      # tests/backend/ and tests/tools/test_metrics_report.py unable to even
+      # import, and ruff/mypy never checked backend/ at all. Real gap, fixed.
       - name: Install Python dependencies
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev,backend,ota]"
+
+      # Minimal real model set (NOT all 9 languages - that would make CI
+      # prohibitively slow/network-heavy): whisper tiny for speed, the one
+      # language pair (es<->en) and the one TTS voice this project's own
+      # Phase 8/30 testing has actually verified produce correct end-to-end
+      # output. Every live/real test gracefully skips if these aren't
+      # present (tests/conftest.py's fixtures), so this step failing or
+      # being skipped degrades to fake-only test coverage, not a hard CI
+      # failure - but running it for real is what this project's own
+      # Engineering Principles ask for wherever the environment allows it.
+      - name: Build whisper.cpp + download a minimal real model set
+        run: |
+          bash tools/setup_whisper_cpp.sh tiny base
+          bash tools/setup_translation_models.sh es-en en-es
+          bash tools/setup_tts_models.sh en_US-amy-medium
 
       - name: Lint (ruff)
-        run: python -m ruff check core tools tests
+        run: python -m ruff check core tools tests backend
 
       - name: Type check (mypy)
-        run: python -m mypy core tools
+        run: python -m mypy core tools backend
 
       - name: Test (pytest)
         run: python -m pytest -v
