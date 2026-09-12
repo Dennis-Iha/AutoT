@@ -143,3 +143,21 @@ def test_reset_clears_state():
     segmenter.reset()
     assert segmenter.flush() is None
     assert vad.calls == 0
+
+
+def test_in_segment_reflects_trigger_state():
+    # onset/offset windows are 5 frames each (100ms/20ms), ratio 0.9 -> needs
+    # 5/5 matching frames to flip. 10 True frames trigger onset at frame
+    # index 4 (the 5th); 10 False frames then close it at index 14 (5th
+    # consecutive False after the onset window was cleared).
+    script = [True] * 10 + [False] * 10
+    segmenter, _ = make_segmenter(script=script)
+    assert segmenter.in_segment is False
+    for i in range(len(script)):
+        segmenter.push(make_frame(value=i + 1))
+        if i < 4:
+            assert segmenter.in_segment is False, f"triggered too early at frame {i}"
+        elif i < 14:
+            assert segmenter.in_segment is True, f"not triggered at frame {i}"
+        else:
+            assert segmenter.in_segment is False, f"should have closed by frame {i}"

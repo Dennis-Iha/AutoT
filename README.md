@@ -182,13 +182,35 @@ tools/quantize_asr_models.sh base q4_0 q5_0 q8_0  # produce quantized ASR model 
 python -m tools.quantization_benchmark   # size/RAM/latency/accuracy across quantization levels
 ```
 
-Run the complete pipeline (mic → VAD → language ID → ASR → translation →
-TTS → speaker):
+**`autot` is the main entry point** - one command that runs the complete
+pipeline (mic → VAD → language ID → ASR → translation → TTS → speaker).
+Install the terminal-UI extra once (`pip install -e ".[tui]"`), then:
 
 ```bash
-at-translate --duration 30                              # live mic, speaks the English translation
-at-translate --input-file some_speech.wav --no-play --out-dir /tmp/out  # batch/file mode
+autot                                    # default: live terminal dashboard, runs until Ctrl+C
+autot --duration 60                      # same, but for a fixed 60s window
+autot --headless                         # live mode with plain log lines, no UI
+autot --input-file some_speech.wav --no-play --out-dir /tmp/out  # batch/file mode
 ```
+
+The default view is a live terminal dashboard - mic level meter, detected
+language/confidence, transcription, translation, and a scrolling history
+table - because "turn it on and it just works" is the actual product
+experience this project is building toward, not a timed demo. Press
+Ctrl+C to stop; it finishes processing whatever's in flight before exiting
+cleanly, it doesn't just die mid-segment.
+
+`--headless` is the shape a future embedded/headphone target would use
+(no terminal to render a UI into) - same pipeline, same
+`tools.at_translate.run_live_mode`, just without the dashboard. The
+terminal UI itself (`tools/at_translate_tui.py`) is a workstation-only
+demo/visualization tool and is not expected to run on that eventual
+hardware.
+
+The lower-level tools `at-translate` and `at-translate-tui` still exist
+directly (useful for scripted/fixed-duration testing) - `autot` is a thin
+dispatcher over the same `build_pipeline`/`run_live_mode`/`run_file_mode`/
+`run_tui_live_mode` functions, not a reimplementation.
 
 Run the backend (auth/devices/models/firmware - never processes speech):
 

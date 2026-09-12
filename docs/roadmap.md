@@ -855,3 +855,87 @@ the single highest-leverage open item remains Phase 12/22's unresolved
 production chip selection, which blocks every downstream physical phase,
 and Phase 30's language-accuracy gap, which blocks any broad commercial
 language claim.
+
+## Post-closeout addition: a live terminal UI for demoing the pipeline
+
+`tools/at_translate_tui.py` adds a real-time terminal dashboard over the
+exact same mic -> VAD -> pipeline -> speaker flow `tools/at_translate.py`'s
+live mode already runs (same `StreamingSession`, no new pipeline logic) -
+a mic-level meter (derived from real captured audio RMS, not simulated), a
+"current segment" panel (detected language/confidence, transcription,
+translation, latency), and a scrolling history table, built with `rich`
+(new `tui` optional dependency group).
+
+Smoke-tested for real, not just unit-tested: run against the real
+microphone and real pipeline both with output redirected to a file (to
+check for crashes/exceptions cleanly) and inside a real pty via `script`
+(to confirm the alternate-screen rendering, box-drawing table, and color
+markup actually render correctly and the terminal is restored cleanly on
+exit) - both runs completed without error, correctly showing a real
+ambient-noise segment reported as `low confidence` rather than guessing.
+8 tests in `tests/tools/test_at_translate_tui.py` cover the pure
+rendering/formatting logic (`render()`, `_status_text()`, `_truncate()`)
+against real `PipelineResult`/`LanguageDetectionResult` shapes, including
+one that renders to a real `rich.Console` buffer and asserts the actual
+detected language, confidence, and translation text appear in the output -
+not just "doesn't crash."
+
+Also added `core/vad/segmenter.py`'s `in_segment` property (a real,
+tested addition, not UI-only scaffolding) so the UI's "speech detected"
+indicator reflects the segmenter's actual onset/offset state rather than
+reaching into a private attribute from outside the module.
+
+Workstation-only by design, consistent with every other tool in this
+project: this visualizes AT-CORE while it's being proven on a computer
+(per the master architecture decision), and is explicitly not expected to
+run on the eventual headphone/earbud hardware - there is no terminal to
+render into there, and nothing in `core/` imports this file.
+
+### Follow-up: one consolidated main entry point, TUI by default
+
+Requested as a direct follow-up: "everything here should be launched from
+the main entry point, so after running it it should auto launch the
+terminal UI." `tools/at_main.py` (installed as `autot`) is that entry
+point - a thin dispatcher, not new pipeline logic, over the same
+`build_pipeline`/`run_live_mode`/`run_file_mode` (`tools/at_translate.py`)
+and `run_tui_live_mode` (`tools/at_translate_tui.py`, extracted out of its
+`main()` so it's callable directly without re-parsing argv). Mode
+selection (`choose_mode()`) is pure logic, unit-tested without needing a
+real mic: `--input-file` -> file mode, `--headless` -> live mode without
+the UI, otherwise -> the live terminal UI (the default).
+
+Two real behavioral additions needed to make "auto launch" actually feel
+like turning the system on, not running a timed demo:
+
+- **Indefinite listening by default** (`--duration` now defaults to
+  `None`, meaning "run until Ctrl+C" rather than a fixed window) - both
+  `tools/at_translate.py`'s `run_live_mode` and `tools/at_translate_tui.py`'s
+  `run_tui_live_mode` branch on `args.duration is None` to loop forever
+  instead of sleeping a fixed amount. This matches the master spec's own
+  requirement, already quoted in `core/streaming/session.py`'s docstring,
+  that "the program must continuously listen, translate and speak."
+- **Graceful Ctrl+C handling** - both functions now catch
+  `KeyboardInterrupt` around the listen loop and fall through to the
+  exact same drain-then-exit path a timed run already used, instead of
+  letting the interrupt propagate into an unhandled traceback.
+
+Smoke-tested for real in all three modes, not assumed from the diff:
+`autot --headless --duration 5` (real mic, correctly caught a real
+ambient-noise segment as low-confidence); `autot --input-file
+tests/fixtures/speech/es.wav` (reproduced Phase 30's known result exactly:
+`'¿Donde está la estación de plan?' -> "Where's the plan station?"`); and
+`autot` with no arguments (the new default path) run in the background
+with a real `SIGINT` sent mid-run - the signal arrived while the process
+was still blocked inside native model-loading code (CTranslate2/ONNX
+session construction don't yield to Python's signal handler until control
+returns to the interpreter), so Python correctly *deferred* it rather than
+dropping it, and it was handled as soon as the listening loop started -
+ending in `done: captured 1 segment(s), processed 1` with no traceback.
+This is a more rigorous real-world confirmation than a clean mid-loop
+interrupt would have been, not a weaker one.
+
+7 new tests (`tests/tools/test_at_main.py`'s mode-dispatch logic,
+`tests/tools/test_at_translate_tui.py`'s indefinite-duration render path)
+plus the existing TUI/backend/ota suites, all still passing. `at-translate`
+and `at-translate-tui` remain available directly for scripted/fixed-
+duration use; `autot` is the documented primary entry point going forward.

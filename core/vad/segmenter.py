@@ -72,6 +72,14 @@ class SpeechSegmenter:
         self._segment_start_frame_idx = 0
         self._frame_idx = 0
 
+    @property
+    def in_segment(self) -> bool:
+        """True while currently inside a triggered speech segment - exposed
+        for callers that want a live "speech detected" indicator (e.g. a UI
+        meter) without reaching into the private onset/offset state
+        machine above."""
+        return self._triggered
+
     def reset(self) -> None:
         self._onset_ring.clear()
         self._offset_ring.clear()

@@ -43,10 +43,15 @@ backend = [
 ota = [
     "httpx>=0.27",
 ]
+tui = [
+    "rich>=13.0",
+]
 
 [project.scripts]
+autot = "tools.at_main:main"
 at-audio-demo = "tools.mic_vad_demo:main"
 at-translate = "tools.at_translate:main"
+at-translate-tui = "tools.at_translate_tui:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["core", "tools"]

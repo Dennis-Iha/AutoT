@@ -208,9 +208,19 @@ def run_live_mode(args, pipeline: TranslationPipeline) -> None:
         blocksize_samples=cfg.audio.blocksize_samples, device=args.device,
         ring_buffer_seconds=cfg.audio.ring_buffer_seconds, on_frames=on_frames,
     )
-    logger.info("listening for %.0fs (target=%s)... speak now", args.duration, args.target)
+    if args.duration is None:
+        logger.info("listening indefinitely (target=%s)... speak now, Ctrl+C to stop", args.target)
+    else:
+        logger.info("listening for %.0fs (target=%s)... speak now", args.duration, args.target)
     with capture:
-        time.sleep(args.duration)
+        try:
+            if args.duration is None:
+                while True:
+                    time.sleep(0.2)
+            else:
+                time.sleep(args.duration)
+        except KeyboardInterrupt:
+            logger.info("stopping (Ctrl+C)...")
     final = segmenter.flush()
     if final is not None:
         submitted_count[0] += 1
