@@ -38,7 +38,7 @@ Speech segment (mono int16 PCM, 16kHz)
 | Language identification    |  core/language_id/whisper_lid.py ->
 |                             |  WhisperCppRunner.detect_language() (`-dl`, encoder-only)
 +----------------------------+
-        | confidence >= 0.5 (LOW_CONFIDENCE_THRESHOLD, core/language_id/base.py)?
+        | confidence >= 0.65 (LOW_CONFIDENCE_THRESHOLD, core/language_id/base.py)?
         |   no  -> PipelineStatus.LOW_CONFIDENCE, stop, nothing spoken
         v  yes
    source_language == target_language?
@@ -149,8 +149,9 @@ variant real-time use would eventually need.
   so `core/asr/base.py` exposes `detect_language` on the ASR interface too
   and both modules share one runner rather than loading two models.
 - **Confidence gate**: `core/language_id/base.py`'s
-  `LOW_CONFIDENCE_THRESHOLD = 0.5`; `is_confident()` is what
-  `TranslationPipeline` checks before doing anything else with a segment.
+  `LOW_CONFIDENCE_THRESHOLD = 0.65` (raised from 0.5 - see below);
+  `is_confident()` is what `TranslationPipeline` checks before doing
+  anything else with a segment.
 - **Measured accuracy, on this project's own espeak-ng-synthesized fixtures
   (`tests/fixtures/speech/`, one sentence per language, NOT natural
   speech)**: base multilingual model, **2/9 languages correctly
@@ -159,28 +160,32 @@ variant real-time use would eventually need.
   match for Whisper's language classifier specifically, not a model-size
   problem (ASR-with-forced-language and TTS round-trip both validate fine
   on the same audio).
-- **Worse finding (Phase 30), not just a restatement of the accuracy gap**:
-  this is a separate, later run from the small-model finding above, on the
-  **base** model (`ggml-base.bin`) via the full-pipeline sweep
-  (`tools/performance_sweep.py`). Of the sweep's 5 nominally "ok" rows, 3
-  were *confidently* wrong - Bengali, Hindi, and Mandarin fixtures were
-  misdetected as English at 0.51-0.59 confidence, above the 0.5 threshold
-  (a different, lower confidence range than the small model's own
-  confident-wrong-answer finding above at 0.79-0.85 for the same three
-  languages - different model, different confidence numbers, same failure
-  shape). Because that clears the confidence
-  gate, `source_language == target_language` becomes true, translation is
+- **Worse finding (Phase 30), found and then fixed, not just a
+  restatement of the accuracy gap**: this is a separate, later run from the
+  small-model finding above, on the **base** model (`ggml-base.bin`) via
+  the full-pipeline sweep (`tools/performance_sweep.py`). At the original
+  0.5 threshold, 3 of the sweep's 5 nominally "ok" rows were *confidently*
+  wrong - Bengali, Hindi, and Mandarin fixtures were misdetected as English
+  at 0.51-0.59 confidence (a different, lower confidence range than the
+  small model's own confident-wrong-answer finding above at 0.79-0.85 for
+  the same three languages - different model, different confidence
+  numbers, same failure shape). Because that cleared the old confidence
+  gate, `source_language == target_language` became true, translation was
   skipped by design (correct behavior for real English input), and
-  whatever whisper.cpp's English-forced decode hallucinates from the
-  foreign-language audio gets spoken back as a fluent-sounding but
+  whatever whisper.cpp's English-forced decode hallucinated from the
+  foreign-language audio got spoken back as a fluent-sounding but
   meaningless English sentence - with no `LOW_CONFIDENCE` fallback, since
   that path only triggers when the detected language differs from the
-  target. This is a real, open, unresolved gap, not a hypothetical edge
-  case: it happened for 3 of 9 languages in the one real sweep run so far
-  (`tools/performance_sweep.py`, `docs/roadmap.md` Phase 30).
-- **Status**: engineering prototype, with a known defect - real, working
-  code, but the defect above means detected-language==target-language
-  currently has no safety net at all.
+  target. **Fix**: raised `LOW_CONFIDENCE_THRESHOLD` to 0.65, which cleanly
+  separates those three (<=0.59) from es/en (>=0.91) on this fixture set;
+  re-running the real sweep confirmed all three now correctly report
+  `LOW_CONFIDENCE` instead of garbage, with es/en unaffected. Honest
+  limitation: 0.65 is a targeted fix for this n=9 sample, not a
+  precision/recall-calibrated threshold - see `docs/roadmap.md`'s Phase 30
+  follow-up and `docs/troubleshooting.md`'s incident 10.
+- **Status**: engineering prototype - the silent-garbage defect above is
+  fixed and re-verified; overall LID accuracy on this fixture set (2/9
+  languages reliably detected) is unchanged.
 
 ## Stage 4: Automatic speech recognition
 

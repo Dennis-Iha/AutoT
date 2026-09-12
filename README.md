@@ -93,16 +93,22 @@ Phase 7 hit for real (a truncated download treated as complete). A new
 smoke-tested against a live server on this workstation.
 
 **Phase 30: full-pipeline performance sweep across all 9 languages, real
-and measured.** `tools/performance_sweep.py` runs the real end-to-end
-pipeline (not isolated per-stage benchmarks) on all 9 v1 languages and
-found something more serious than Phase 8's original LID-accuracy gap: raw
-pipeline-status pass rate is 5/9, but the genuinely-correct rate is only
-**2/9** (en, es) — 3 languages (Bengali, Hindi, Mandarin) were confidently
-misdetected as English (confidence ≥ the pipeline's 0.5 threshold) and
-produced fluent-sounding garbage instead of a real translation, silently
-bypassing the LOW_CONFIDENCE safeguard that protects every other
-misdetection case. See `docs/roadmap.md`'s Phase 30 section for the full
-per-language table and the follow-up this surfaces.
+and measured — then fixed, not left broken.** `tools/performance_sweep.py`
+runs the real end-to-end pipeline (not isolated per-stage benchmarks) on
+all 9 v1 languages and found something more serious than Phase 8's
+original LID-accuracy gap: raw pipeline-status pass rate was 5/9, but the
+genuinely-correct rate was only **2/9** (en, es) — 3 languages (Bengali,
+Hindi, Mandarin) were confidently misdetected as English (confidence ≥ the
+pipeline's old 0.5 threshold) and produced fluent-sounding garbage instead
+of a real translation, silently bypassing the LOW_CONFIDENCE safeguard.
+Fixed as a direct follow-up: `core/language_id/base.py`'s
+`LOW_CONFIDENCE_THRESHOLD` raised to 0.65, re-verified against a real
+re-run of the sweep — those 3 languages now correctly report
+`low_confidence` instead of garbage, and the raw pass rate is now 2/9,
+matching the genuinely-correct rate exactly. Actual LID accuracy on the
+other 7 languages is unchanged; only the silent-garbage safety defect is
+fixed. See `docs/roadmap.md`'s Phase 30 section for the full per-language
+table and honest limitations of the fix.
 
 **Phase 31: product metrics, real backend + CLI report (no web UI).**
 `backend/routes/metrics.py` adds real, tested event ingestion and

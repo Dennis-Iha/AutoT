@@ -698,6 +698,38 @@ environment recordings or physical hardware exist in this development
 environment to test against, an open gap flagged here rather than silently
 dropped, same as every other hardware-blocked phase in this project.
 
+### Follow-up fix: the "suspect" failure mode is closed (not left as documented-but-broken)
+
+The "actionable follow-up" above was acted on, not left as a permanent
+open item: `core/language_id/base.py`'s `LOW_CONFIDENCE_THRESHOLD` was
+raised from 0.5 to 0.65, specifically because 0.65 cleanly separates the 7
+currently-unreliable languages (all <=0.59 on this fixture set) from the 2
+verified-working ones (es 0.94, en 0.91), closing the exact gap that let
+bn/hi/zh (0.51-0.59) slip past the old threshold and produce silent
+garbage. Re-ran `tools/performance_sweep.py` for real after the change to
+confirm it actually works, not just that the arithmetic checks out:
+
+| Language | Status (before) | Status (after) |
+|---|---|---|
+| en | ok | ok (unchanged - still correct) |
+| es | ok | ok (unchanged - still correct) |
+| ar, fr, pt, ru | low_confidence | low_confidence (unchanged) |
+| bn, hi, zh | **ok (SUSPECT - garbage)** | **low_confidence (now fails safe)** |
+
+Raw pipeline-status pass rate is now 2/9 (22%) - and critically, this now
+*equals* the genuinely-correct rate instead of overstating it at 5/9. The
+raw "ok" count and the honest count no longer disagree, which is the real
+fix: not a higher pass rate, but the elimination of the gap between what
+the status says and what's actually true.
+
+Honest limitation, stated plainly rather than implied: 0.65 was chosen to
+correctly separate these specific 9 synthesized-fixture measurements, not
+derived from a precision/recall study across a larger sample - it is a
+targeted bug fix for an observed, concrete failure, not a generally
+validated threshold. It should be re-checked once real human-speech data
+exists (the same caveat that has applied to every LID accuracy number in
+this project since Phase 8), and may need to move again as a result.
+
 ## Phase 31 results summary: product metrics dashboards
 
 "Dashboards" here means a real, tested backend aggregation API plus a CLI

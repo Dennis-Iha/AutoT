@@ -40,7 +40,7 @@ production ready** - not just "done."
 | Component | Readiness | Why |
 |---|---|---|
 | VAD, audio cleanup, beamforming (Phase 1-3) | engineering prototype | real, tested code; beamforming only validated against synthetic signals, never a real mic array |
-| Language ID (Phase 4) | engineering prototype, with a known defect | works; measured accuracy is 2-3/9 languages reliable on synthesized speech, and Phase 30 found a worse failure mode (confident misdetection into the target language, bypassing the safety fallback) |
+| Language ID (Phase 4) | engineering prototype | works; measured accuracy is 2-3/9 languages reliable on synthesized speech; Phase 30 found a worse failure mode (confident misdetection into the target language, bypassing the safety fallback) and it was fixed by raising the confidence threshold (0.5->0.65), re-verified against the real sweep |
 | ASR (Phase 5) | engineering prototype | real, tested with forced language; not real-time on this CPU (up to 90s/utterance) |
 | Translation (Phase 6, extended Phase 17) | production candidate for es<->en specifically; engineering prototype for the other 7 languages | es<->en is the only pair with end-to-end verified correct output (Phase 30); the rest have installed, checksummed, signed models but no verified correct full-pipeline output yet |
 | TTS (Phase 7) | production candidate | real, tested, WER=0.0 round-trip on tested sentences |
@@ -70,10 +70,14 @@ Not every gap above blocks launch equally. In dependency order:
 2. **Language accuracy (Phase 8/30)** - blocks any commercial language
    claim beyond es<->en. Shipping a "9-language translator" today would be
    selling something this project's own tests show mostly doesn't work
-   (`docs/roadmap.md`'s Phase 30 section: genuinely-correct rate 2/9, not
-   the raw 5/9 a less careful read would report). This must be fixed or
-   the initial commercial claim must be narrowed to the languages actually
-   verified - the latter is always available today, unlike the former.
+   (`docs/roadmap.md`'s Phase 30 section: genuinely-correct rate 2/9 -
+   originally masked by a raw pass rate of 5/9 until the underlying
+   confidence-threshold defect was found and fixed, after which the raw
+   rate also reads 2/9, matching reality). This must be fixed - actual LID
+   accuracy on the other 7 languages, not just the safety-net bug around
+   it - or the initial commercial claim must be narrowed to the languages
+   actually verified - the latter is always available today, unlike the
+   former.
 3. **Real-time latency (Phase 9/11)** - a 14-32s round trip per utterance
    is not a commercially usable "conversation" product regardless of
    language accuracy; needs either the eventual production chip's NPU

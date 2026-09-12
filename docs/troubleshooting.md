@@ -315,23 +315,29 @@ audio got spoken back as if it were a legitimate response:
 path that correctly caught ar/fr/pt/ru, because there's no visible failure
 signal at all — the pipeline reports `status=ok`.
 
-**Fix**: Not resolved — deliberately recorded as an open, actionable gap
-rather than patched over. `tools/performance_sweep.py` now computes and
-prints both the raw pass rate and a genuinely-correct rate (excluding rows
-flagged `suspect_misdetected_as_target`), so this gap can't be missed by
-trusting the raw "ok" count alone; the genuinely-correct rate is 2/9 (22%)
-— en and es only, unchanged from incident 4's original finding, now proven
-at the full-pipeline level with a concrete downstream cost attached. The
-documented next step is to either raise the 0.5 threshold or add a
-same-language sanity check specifically for the
-detected-language-equals-target-language case, since that case currently
-has no safety net at all once LID clears 0.5.
+**Fix**: Resolved, not left as a permanent open gap. `tools/performance_sweep.py`
+first shipped with both a raw pass rate and a genuinely-correct rate
+(excluding rows flagged `suspect_misdetected_as_target`), so the gap
+couldn't be missed by trusting the raw "ok" count alone. As a direct
+follow-up, `core/language_id/base.py`'s `LOW_CONFIDENCE_THRESHOLD` was
+raised from 0.5 to 0.65 - chosen because it cleanly separates the 7
+currently-unreliable languages (all <=0.59 on this fixture set) from the 2
+verified-working ones (es 0.94, en 0.91). Re-running the real sweep
+afterward confirmed bn/hi/zh now correctly report `low_confidence` instead
+of silently producing garbage, while en/es are unaffected - raw pass rate
+is now 2/9 (22%), equal to the genuinely-correct rate instead of
+overstating it. Honest limitation: 0.65 is a targeted fix validated only
+against this n=9 synthesized-fixture set, not a precision/recall-calibrated
+threshold - it should be re-checked once real human-speech data exists.
 
-**Where**: `tools/performance_sweep.py` (module docstring and the
-`suspect_misdetected_as_target` flag); full numbers in `docs/roadmap.md`'s
-Phase 30 section. Phase 30. Per
+**Where**: `core/language_id/base.py` (`LOW_CONFIDENCE_THRESHOLD`),
+`tools/performance_sweep.py` (the `suspect_misdetected_as_target` flag,
+now never triggered on this fixture set); full before/after numbers in
+`docs/roadmap.md`'s Phase 30 section. Phase 30. Per
 `docs/commercial-product-architecture.md`'s readiness matrix, this keeps
-language ID at *engineering prototype, with a known defect*.
+language ID at *engineering prototype* - the specific defect that produced
+silent garbage is fixed, but overall LID accuracy on this fixture set
+(2/9 languages reliably detected) is unchanged.
 
 ## 11. CI had been failing to run on every push since at least Phase 12, unnoticed
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 
 from core.audio.wav_io import read_wav
+from core.language_id.base import LOW_CONFIDENCE_THRESHOLD
 from core.language_id.whisper_lid import WhisperLanguageIdentifier
 
 LANGUAGES = ["en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "ru"]
@@ -41,4 +42,4 @@ def test_identify_english_fixture_as_english(identifier, speech_fixtures):
 def test_is_confident_helper(identifier, speech_fixtures):
     audio, sr = read_wav(speech_fixtures["en"]["wav_path"])
     result = identifier.identify(audio, sr)
-    assert identifier.is_confident(result) == (result.confidence >= 0.5)
+    assert identifier.is_confident(result) == (result.confidence >= LOW_CONFIDENCE_THRESHOLD)
